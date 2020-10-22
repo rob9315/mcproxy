@@ -21,6 +21,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Proxy = exports.Room = exports.BotConn = exports.User = exports.Account = exports.Address = void 0;
 var mc = __importStar(require("minecraft-protocol"));
+var loadWelcomeMap_1 = require("./loadWelcomeMap");
 var Address = /** @class */ (function () {
     function Address(host, port) {
         this.host = host;
@@ -40,6 +41,7 @@ exports.Account = Account;
 var User = /** @class */ (function () {
     function User(proxyClient) {
         this.proxyClient = proxyClient;
+        loadWelcomeMap_1.loadWelcomeMap(this.proxyClient);
     }
     return User;
 }());
