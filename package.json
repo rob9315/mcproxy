@@ -38,6 +38,7 @@
     "test": "test"
   },
   "dependencies": {
+    "commonjs": "0.0.1",
     "minecraft-protocol": "^1.17.0",
     "mineflayer": "^2.31.0",
     "ts-node": "^9.0.0",
