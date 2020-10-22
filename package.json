@@ -37,9 +37,11 @@
 	},
 	"dependencies": {
 		"commonjs": "0.0.1",
+		"minecraft-data": "^2.69.1",
 		"minecraft-protocol": "^1.17.0",
 		"mineflayer": "^2.31.0",
 		"ts-node": "^9.0.0",
-		"tsc": "^1.20150623.0"
+		"tsc": "^1.20150623.0",
+		"vec3": "^0.1.7"
 	}
 }

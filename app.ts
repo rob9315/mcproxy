@@ -2,7 +2,7 @@ import { readFileSync } from 'fs';
 import * as mcproxy from './index.js';
 import readline from 'readline';
 const cred = JSON.parse(readFileSync('./cred.json', 'utf-8'));
-const proxy = new mcproxy.Proxy('localhost', 25566);
+export const proxy = new mcproxy.Proxy('localhost', 25566);
 const rl = readline.createInterface({
 	input: process.stdin,
 	output: process.stdout,
