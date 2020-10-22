@@ -23,6 +23,9 @@ export class User {
 	constructor(proxyClient: mc.Client) {
 		this.proxyClient = proxyClient;
 		loadWelcomeMap(this.proxyClient);
+		this.proxyClient.on('packet', (data, packetMeta) => {
+			output(this, data, packetMeta);
+		});
 	}
 }
 export class BotConn {
@@ -88,3 +91,11 @@ let proxyServer = mc.createServer({
 proxyServer.on('login', (proxyClient) => {
 	users.push(new User(proxyClient));
 });
+
+function output(object: any, data: any, packetMeta: mc.PacketMeta) {
+	if (object.name) {
+		console.log(object.name, packetMeta.name, packetMeta.state, data);
+	} else {
+		console.log(packetMeta.name, packetMeta.state, data);
+	}
+}
