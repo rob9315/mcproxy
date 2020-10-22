@@ -1,6 +1,6 @@
 import * as mc from 'minecraft-protocol';
 import * as mineflayer from 'mineflayer';
-import * as loadWelcomeMap from './loadWelcomeMap';
+import { loadWelcomeMap } from './loadWelcomeMap';
 
 export class Address {
 	host: string;
@@ -22,6 +22,7 @@ export class User {
 	proxyClient: mc.Client;
 	constructor(proxyClient: mc.Client) {
 		this.proxyClient = proxyClient;
+		loadWelcomeMap(this.proxyClient);
 	}
 }
 export class BotConn {
