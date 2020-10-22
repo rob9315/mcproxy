@@ -1,47 +1,45 @@
 {
-  "name": "mcproxy",
-  "version": "0.0.0",
-  "description": "A template repository to make it easy to create new prismarine repo",
-  "main": "index.js",
-  "type": "module",
-  "scripts": {
-    "test": "jest --verbose",
-    "pretest": "npm run lint && require-self",
-    "prepare": "npm install require-self && require-self",
-    "lint": "standard",
-    "fix": "standard --fix",
-    "start": "tsc && node index.js",
-    "tsc": "tsc"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/PrismarineJS/prismarine-template.git"
-  },
-  "keywords": [
-    "prismarine",
-    "template"
-  ],
-  "author": "Romain Beaumont",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/PrismarineJS/prismarine-template/issues"
-  },
-  "homepage": "https://github.com/PrismarineJS/prismarine-template#readme",
-  "devDependencies": {
-    "@types/node": "^14.14.2",
-    "jest": "^26.1.0",
-    "require-self": "^0.2.3",
-    "standard": "^14.3.4",
-    "typescript": "^4.0.3"
-  },
-  "directories": {
-    "test": "test"
-  },
-  "dependencies": {
-    "commonjs": "0.0.1",
-    "minecraft-protocol": "^1.17.0",
-    "mineflayer": "^2.31.0",
-    "ts-node": "^9.0.0",
-    "tsc": "^1.20150623.0"
-  }
+	"name": "mcproxy",
+	"version": "0.0.0",
+	"description": "A template repository to make it easy to create new prismarine repo",
+	"main": "app.ts",
+	"type": "module",
+	"scripts": {
+		"test": "jest --verbose",
+		"pretest": "npm run lint && require-self",
+		"prepare": "npm install require-self && require-self",
+		"lint": "standard",
+		"fix": "standard --fix"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/PrismarineJS/prismarine-template.git"
+	},
+	"keywords": [
+		"prismarine",
+		"template"
+	],
+	"author": "Romain Beaumont",
+	"license": "MIT",
+	"bugs": {
+		"url": "https://github.com/PrismarineJS/prismarine-template/issues"
+	},
+	"homepage": "https://github.com/PrismarineJS/prismarine-template#readme",
+	"devDependencies": {
+		"@types/node": "^14.14.2",
+		"jest": "^26.1.0",
+		"require-self": "^0.2.3",
+		"standard": "^14.3.4",
+		"typescript": "^4.0.3"
+	},
+	"directories": {
+		"test": "test"
+	},
+	"dependencies": {
+		"commonjs": "0.0.1",
+		"minecraft-protocol": "^1.17.0",
+		"mineflayer": "^2.31.0",
+		"ts-node": "^9.0.0",
+		"tsc": "^1.20150623.0"
+	}
 }
