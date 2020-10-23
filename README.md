@@ -1,8 +1,8 @@
-# prismarine-template
+# mcproxy
 
 [![Discord](https://img.shields.io/badge/chat-on%20discord-brightgreen.svg)](https://discord.gg/GsEFRM8) [![Try it on gitpod](https://img.shields.io/badge/try-on%20gitpod-brightgreen.svg)](https://gitpod.io/#https://github.com/Rob9315/mcproxy)
 
-A template repository to make it easy to create new prismarine repo
+A modular (currently barely functional) minecraft multi-account, multi-connection **minecraft proxy** with **persistent connections**
 
 ## Usage
 
@@ -14,7 +14,7 @@ const proxy = new mcproxy.Proxy("localhost", 25566);
 
 ## API
 
-### new Proxy(host, port)
+### new Proxy(host, port) => main use case when implementing
 
 creates a new proxy on specified host and port, is more of a standalone program in this form
 
