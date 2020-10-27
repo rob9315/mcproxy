@@ -9,7 +9,9 @@
     "pretest": "npm run lint && require-self",
     "prepare": "npm install require-self && require-self",
     "lint": "standard",
-    "fix": "standard --fix"
+    "fix": "standard --fix",
+    "downloadServer": "downloadMinecraft 1.12.2 ./server/server.jar server",
+    "runServer": "cd server && java -jar server.jar nogui"
   },
   "repository": {
     "type": "git",

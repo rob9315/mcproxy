@@ -39,7 +39,7 @@ export class Conn {
         this.write = (name, data) => { };
         this.packetlog = [];
         this.bot = mineflayer.createBot(botOptions);
-        this.write = this.bot._client.write;
+        this.write = this.bot._client.write.bind(this.bot._client);
         this.metadata = [];
         this.bot._client.on('packet', (data, packetMeta) => {
             if (this.pclient) {

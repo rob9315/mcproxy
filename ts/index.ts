@@ -8,6 +8,7 @@ interface Packet {
   name: string;
   state?: string;
 }
+
 // export class simpleProxy {
 //   client: mc.Client;
 //   proxyServer: mc.Server;
@@ -51,7 +52,7 @@ export class Conn {
   constructor(botOptions: mineflayer.BotOptions) {
     this.packetlog = [];
     this.bot = mineflayer.createBot(botOptions);
-    this.write = this.bot._client.write;
+    this.write = this.bot._client.write.bind(this.bot._client);
     this.metadata = [];
     this.bot._client.on('packet', (data, packetMeta) => {
       if (this.pclient) {
