@@ -18,7 +18,12 @@ then open a terminal in your folder and run
 ```
 node app.js
 ```
-to start the server
+to start the proxy.
+
+last step is to open your preferred minecraft client and connect to 
+```
+localhost:25566
+```
 
 ## API
 
