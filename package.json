@@ -1,7 +1,7 @@
 {
-  "name": "mcproxy-conn",
+  "name": "mcproxy",
   "version": "1.0.0",
-  "description": "mcproxy dependency",
+  "description": "a minecraft proxy",
   "main": "index.js",
   "type": "module",
   "scripts": {
@@ -10,7 +10,7 @@
     "prepare": "npm install require-self && require-self",
     "lint": "standard",
     "fix": "standard --fix",
-    "downloadServer": "downloadMinecraft 1.12.2 ./server/server.jar server",
+    "downloadServer": "downloadMinecraft 1.16.3 ./server/server.jar server",
     "runServer": "cd server && java -jar server.jar nogui"
   },
   "repository": {
@@ -18,8 +18,8 @@
     "url": "git+https://github.com/Rob9315/mcproxy-conn.git"
   },
   "keywords": [
-    "prismarine",
-    "template"
+    "minecraft",
+    "proxy"
   ],
   "author": "Rob9315",
   "license": "MIT",
