@@ -1,54 +1,35 @@
 {
-  "name": "mcproxy",
-  "version": "0.0.0",
-  "description": "A template repository to make it easy to create new prismarine repo",
+  "name": "mcproxy-conn",
+  "version": "1.0.0",
+  "description": "mcproxy dependency",
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "node src/app.js",
-    "dev": "node dev/app.js",
-    "pretest": "npm run lint && require-self && tsc",
+    "test": "jest --verbose",
+    "pretest": "npm run lint && require-self",
     "prepare": "npm install require-self && require-self",
     "lint": "standard",
-    "fix": "standard --fix",
-    "downloadServer": "downloadMinecraft 1.12.2 ./server/server.jar server",
-    "runServer": "cd server && java -jar server.jar nogui",
-    "tsc": "tsc"
+    "fix": "standard --fix"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Rob9315/mcproxy"
+    "url": "git+https://github.com/Rob9315/mcproxy-conn.git"
   },
   "keywords": [
     "prismarine",
     "template"
   ],
-  "author": "Romain Beaumont",
+  "author": "Rob9315",
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/Rob9315/mcproxy"
-  },
-  "homepage": "https://github.com/Rob9315/mcproxy#readme",
   "devDependencies": {
-    "@types/node": "^14.14.2",
     "jest": "^26.1.0",
-    "minecraft-wrap": "^1.2.3",
     "require-self": "^0.2.3",
-    "standard": "^14.3.4",
-    "typescript": "^4.0.3"
-  },
-  "directories": {
-    "test": "test"
+    "standard": "^15.0.0"
   },
   "dependencies": {
-    "commonjs": "0.0.1",
     "minecraft-data": "^2.69.1",
     "minecraft-protocol": "^1.17.0",
-    "mineflayer": "^2.31.0",
-    "prismarine-chunk": "^1.20.3",
-    "prismarine-world": "^3.1.0",
-    "ts-node": "^9.0.0",
-    "tsc": "^1.20150623.0",
-    "vec3": "^0.1.7"
+    "mineflayer": "^2.32.0",
+    "typescript": "^4.0.3"
   }
 }

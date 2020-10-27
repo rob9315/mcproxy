@@ -1,21 +1,14 @@
 {
-  "version": "2.0.0",
-  "tasks": [
-	{
-		"type": "npm",
-		"script": "tsc:dev",
-		"problemMatcher": [],
-		"label": "npm: tsc:dev",
-		"detail": "cd ./ts && tsc --build tsconfig.dev.json"
-	},
-	{
-		"type": "typescript",
-		"tsconfig": "ts/tsconfig.dev.json",
-		"problemMatcher": [
-			"$tsc"
-		],
-		"group": "build",
-		"label": "tsc: build - ts/tsconfig.dev.json"
-	}
-]
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "typescript",
+			"tsconfig": "tsconfig.json",
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build",
+			"label": "tsc: build - tsconfig.json"
+		}
+	]
 }

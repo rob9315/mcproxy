@@ -1,40 +1,33 @@
-import { readFileSync } from "fs";
-import * as mcproxy from "./index.js";
-import readline from "readline";
-import { genLogin } from "./genLogin.js";
-import mc from "minecraft-protocol";
-const cred = JSON.parse(readFileSync("./cred.json", "utf-8"));
-export const proxy = new mcproxy.Proxy("localhost", 25566);
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
+import * as conn from './index.js';
+import mc from 'minecraft-protocol';
+import mineflayer from 'mineflayer';
+
+process.title = 'mcproxy-conn test';
+
+export const server = mc.createServer({
+  host: 'localhost',
+  port: 25566,
+  'online-mode': false,
 });
-proxy.rooms[0].addBotConn(
-  new mcproxy.BotConn(
-    new mcproxy.Address("localhost", 25565),
-    new mcproxy.Account(cred.username, cred.password)
-  )
-);
-(proxy.rooms[0].botConns[0] as mcproxy.BotConn).bot._client.on(
-  "packet",
-  (data, packetMeta) => {
-    mcproxy.output(new Object(), data, packetMeta);
+
+export const botconn = new conn.Conn({
+  username: 'consistetBot', //! change when entering an 'online-mode' server
+  // password: 'apassword', //! uncomment and change, you know
+  host: 'localhost',
+  port: 25565,
+  plugins: {},
+});
+
+botconn.bot._client.on('packet', (data, packetMeta) => {
+  if (packetMeta.name == 'chat' && data.message.includes('debug')) {
+    console.log();
   }
-);
-proxy.proxyServer.once("login", (client) => {
-  start();
+  if (!['keep_alive', 'update_time'].includes(packetMeta.name) && true) {
+    console.log('tobot', packetMeta.state, packetMeta.name, data);
+  }
 });
-export function start() {
-  (proxy.users[0] as mcproxy.User).proxyClient.on(
-    "packet",
-    (data, packetMeta) => {
-      if (
-        packetMeta.name == "chat" &&
-        (data.message as string).includes("debugpls")
-      ) {
-        genLogin(proxy.rooms[0].botConns[0].bot, proxy.users[0].proxyClient);
-        console.log();
-      }
-    }
-  );
-}
+
+server.on('login', (client) => {
+  botconn.sendPackets(client);
+  botconn.link(client);
+});
