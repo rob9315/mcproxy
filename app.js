@@ -7,8 +7,8 @@ export const server = mc.createServer({
     'online-mode': false,
 });
 export const botconn = new conn.Conn({
-    username: 'consistetBot',
-    // password: 'apassword', //! uncomment and change, you know
+    username: 'whatABot',
+    //password: '', //! uncomment and change, you know
     host: 'localhost',
     port: 25565,
     plugins: {},
@@ -17,9 +17,9 @@ botconn.bot._client.on('packet', (data, packetMeta) => {
     if (packetMeta.name == 'chat' && data.message.includes('debug')) {
         console.log();
     }
-    if (!['keep_alive', 'update_time'].includes(packetMeta.name) && true) {
-        console.log('tobot', packetMeta.state, packetMeta.name, data);
-    }
+    // if (!['keep_alive', 'update_time'].includes(packetMeta.name) && false) {
+    //   console.log('tobot', packetMeta.state, packetMeta.name, data);
+    // }
 });
 server.on('login', (client) => {
     botconn.sendPackets(client);

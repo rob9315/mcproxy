@@ -24,6 +24,7 @@ export declare class Conn {
     generatePackets(): Packet[];
     link(pclient: mc.Client): void;
     unlink(): void;
+    writeIf(name: string, data: any): void;
 }
 export {};
 //# sourceMappingURL=index.d.ts.map

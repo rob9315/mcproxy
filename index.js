@@ -46,15 +46,20 @@ export class Conn {
         this.metadata = [];
         this.bot._client.on('packet', (data, packetMeta) => {
             if (this.pclient) {
-                this.pclient.write(packetMeta.name, data);
+                try {
+                    this.pclient.write(packetMeta.name, data);
+                }
+                catch (error) {
+                    console.log('there was a write error but it was catched, probably because the pclient disconnected');
+                }
             }
-            if (!['keep_alive', 'update_time'].includes(packetMeta.name) && true) {
-                this.packetlog.push({
-                    name: packetMeta.name,
-                    data: data,
-                    state: packetMeta.state,
-                });
-            }
+            // if (!['keep_alive', 'update_time'].includes(packetMeta.name) && false) {
+            //   this.packetlog.push({
+            //     name: packetMeta.name,
+            //     data: data,
+            //     state: packetMeta.state,
+            //   });
+            // }
         });
         //* entity metadata tracking
         this.bot._client.on('packet', (data, packetMeta) => {
@@ -234,13 +239,6 @@ export class Conn {
                                 metadata: this.metadata[entity.id],
                             },
                         });
-                        // packets.push({
-                        //   name: 'entity_metadata',
-                        //   data: {
-                        //     entityId: (entity as any).id,
-                        //     metadata: parseMetadata(entity.metadata),
-                        //   },
-                        // });
                         break;
                     //!WIP
                     case 'global':
@@ -253,26 +251,35 @@ export class Conn {
     }
     link(pclient) {
         this.pclient = pclient;
-        this.bot._client.write = () => { };
-        this.bot._client.writeChannel = () => { };
-        this.bot._client.writeRaw = () => { };
+        this.bot._client.write = this.writeIf.bind(this);
+        //this.bot._client.writeChannel = () => {};
+        //this.bot._client.writeRaw = () => {};
         this.pclient.on('packet', (data, packetMeta) => {
             if (!['keep_alive'].includes(packetMeta.name)) {
                 this.write(packetMeta.name, data);
             }
         });
         this.pclient.on('end', (reason) => {
-            console.log(reason);
+            console.log('pclient ended because of reason:', reason);
+            this.unlink();
+        });
+        this.pclient.on('error', (error) => {
+            console.log('pclient threw an error, maybe just a disconnection?');
             this.unlink();
         });
     }
     unlink() {
         if (this.pclient) {
             this.bot._client.write = this.write.bind(this.bot._client);
-            this.bot._client.writeChannel = this.writeChannel.bind(this.bot._client);
-            this.bot._client.writeRaw = this.writeRaw.bind(this.bot._client);
+            //this.bot._client.writeChannel = this.writeChannel.bind(this.bot._client);
+            //this.bot._client.writeRaw = this.writeRaw.bind(this.bot._client);
             this.pclient.removeAllListeners();
             this.pclient = undefined;
+        }
+    }
+    writeIf(name, data) {
+        if (['keep_alive'].includes(name)) {
+            this.write(name, data);
         }
     }
 }
