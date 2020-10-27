@@ -2,7 +2,7 @@
 
 A wrapper for mineflayer able to generate packets for actual minecraft clients to connect
 
-##Easy usage
+## Easy usage
 
 have the dependent programs: nodejs
 
@@ -20,8 +20,8 @@ node app.js
 ```
 to start the server
 
-##API
+## API
 
-###Conn()
+### Conn()
 
 starts a new Connection, takes mineflayers BotOptions as an Argument
