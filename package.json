@@ -10,7 +10,7 @@
     "prepare": "npm install require-self && require-self",
     "lint": "standard",
     "fix": "standard --fix",
-    "downloadServer": "downloadMinecraft 1.16.3 ./server/server.jar server",
+    "downloadServer": "downloadMinecraft 1.12.2 ./server/server.jar server",
     "runServer": "cd server && java -jar server.jar nogui"
   },
   "repository": {

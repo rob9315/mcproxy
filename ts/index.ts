@@ -68,13 +68,6 @@ export class Conn {
           );
         }
       }
-      // if (!['keep_alive', 'update_time'].includes(packetMeta.name) && false) {
-      //   this.packetlog.push({
-      //     name: packetMeta.name,
-      //     data: data,
-      //     state: packetMeta.state,
-      //   });
-      // }
     });
 
     //* entity metadata tracking
@@ -274,6 +267,9 @@ export class Conn {
           //!WIP
           case 'global':
             //packets.push()
+            break;
+
+          case 'object':
             break;
         }
       }
