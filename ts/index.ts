@@ -295,7 +295,7 @@ export class Conn {
   }
   unlink() {
     if (this.pclient) {
-      this.bot._client.write = this.write;
+      this.bot._client.write = this.write.bind(this.bot._client);
       this.pclient.removeAllListeners();
       this.pclient = mc.createClient({
         username: 'notaclient',
