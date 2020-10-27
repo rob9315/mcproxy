@@ -3,40 +3,37 @@ import mineflayer from 'mineflayer';
 import { loadWelcomeMap } from './loadWelcomeMap.js';
 
 export class Address {
-  host: string;
-  port: number;
-  constructor(host: string, port: number) {
+  host;
+  port;
+  constructor(host, port) {
     this.host = host;
     this.port = port;
   }
 }
 export class Account {
-  username: string;
-  password?: string;
-  constructor(username: string, password?: string) {
+  username;
+  password;
+  constructor(username, password) {
     this.username = username;
     if (password) this.password = password;
   }
 }
 export class User {
-  proxyClient: mc.Client;
-  constructor(proxyClient: mc.Client) {
+  proxyClient;
+  constructor(proxyClient) {
     this.proxyClient = proxyClient;
     loadWelcomeMap(this.proxyClient);
     this.proxyClient.on('packet', (data, packetMeta) => {
-      if (packetMeta.name == 'player_info') {
-        console.log('');
-      }
       output(this, data, packetMeta);
     });
   }
 }
 export class BotConn {
-  address: Address;
-  account: Account;
-  bot: mineflayer.Bot;
-  client: mc.Client;
-  constructor(address: Address, account: Account) {
+  address;
+  account;
+  bot;
+  client;
+  constructor(address, account) {
     this.address = address;
     this.account = account;
     this.bot = mineflayer.createBot({
@@ -50,36 +47,36 @@ export class BotConn {
   }
 }
 export class Room {
-  users: User[];
-  botConns: BotConn[];
-  roomID: number;
-  roomPassword: string;
-  constructor(roomID: number, roomPassword: string) {
+  users;
+  botConns;
+  roomID;
+  roomPassword;
+  constructor(roomID, roomPassword) {
     this.roomID = roomID;
     this.roomPassword = roomPassword;
     this.users = [];
     this.botConns = [];
   }
-  addUser(user: User) {
+  addUser(user) {
     if (!(this.roomPassword == null)) {
     } else {
       this.users.push(user);
     }
   }
-  addBotConn(botConn: BotConn) {
+  addBotConn(botConn) {
     this.botConns.push(botConn);
   }
-  linkUser(user: User, botConn: BotConn) {}
+  linkUser(user, botConn) {}
 }
 export class Proxy {
-  rooms: Room[];
-  users: User[];
-  botConns: BotConn[];
-  host: string;
-  port: number;
-  proxyServer: mc.Server;
-  serverOptions: mc.ServerOptions;
-  constructor(host: string, port: number) {
+  rooms;
+  users;
+  botConns;
+  host;
+  port;
+  proxyServer;
+  serverOptions;
+  constructor(host, port) {
     this.host = host;
     this.port = port;
     this.serverOptions = {
@@ -102,17 +99,16 @@ export class Proxy {
   }
 }
 
-export function output(object: any, data: any, packetMeta: mc.PacketMeta) {
+export function output(object, data, packetMeta) {
   //!debug
   if (!(packetMeta.name == 'keep_alive') && true) {
-    if (!(packetMeta.name == 'map_chunk')) {
-      console.log(packetMeta.state, packetMeta.name, data);
+    if (object.name) {
+      console.log(object.name, packetMeta.state, packetMeta.name, data);
+    } else {
+      console.log(typeof object, packetMeta.state, packetMeta.name, data);
     }
   }
-  if (
-    packetMeta.name == 'chat' &&
-    (data.message as string).includes('debugpls')
-  ) {
+  if (packetMeta.name == 'chat' && data.message.includes('debugpls')) {
     console.log();
   }
 }
