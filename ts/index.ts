@@ -49,10 +49,14 @@ export class Conn {
   packetlog: Packet[];
   metadata: { [entityId: number]: { key: number; type: number; value: any } };
   write = (name: string, data: any): void => {};
+  writeRaw = (buffer: any): void => {};
+  writeChannel = (channel: any, params: any): void => {};
   constructor(botOptions: mineflayer.BotOptions) {
     this.packetlog = [];
     this.bot = mineflayer.createBot(botOptions);
     this.write = this.bot._client.write.bind(this.bot._client);
+    this.writeRaw = this.bot._client.writeRaw.bind(this.bot._client);
+    this.writeChannel = this.bot._client.writeChannel.bind(this.bot._client);
     this.metadata = [];
     this.bot._client.on('packet', (data, packetMeta) => {
       if (this.pclient) {
@@ -82,7 +86,7 @@ export class Conn {
   sendPackets(pclient: mc.Client) {
     let packets: Packet[] = this.generatePackets();
     packets.forEach(({ data, name }) => {
-      if ((name != 'map_chunk' || false) && true) {
+      if ((name != 'map_chunk' || false) && false) {
         console.log('topclient', 'STATE', name, data);
       }
       pclient.write(name, data);
@@ -281,11 +285,12 @@ export class Conn {
 
   link(pclient: mc.Client) {
     this.pclient = pclient;
+    this.bot._client.write = () => {};
+    this.bot._client.writeChannel = () => {};
+    this.bot._client.writeRaw = () => {};
     this.pclient.on('packet', (data, packetMeta) => {
       if (!['keep_alive'].includes(packetMeta.name)) {
         this.write(packetMeta.name, data);
-        this.bot._client.write = () => {};
-        console.log('client', 'sentamessage');
       }
     });
     this.pclient.on('end', (reason) => {
@@ -296,11 +301,10 @@ export class Conn {
   unlink() {
     if (this.pclient) {
       this.bot._client.write = this.write.bind(this.bot._client);
+      this.bot._client.writeChannel = this.writeChannel.bind(this.bot._client);
+      this.bot._client.writeRaw = this.writeRaw.bind(this.bot._client);
       this.pclient.removeAllListeners();
-      this.pclient = mc.createClient({
-        username: 'notaclient',
-        connect: undefined,
-      });
+      this.pclient = undefined;
     }
   }
 }

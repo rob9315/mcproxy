@@ -1,5 +1,4 @@
 import mineflayer from 'mineflayer';
-import mc from 'minecraft-protocol';
 import { botconn } from './app.js';
 // export class simpleProxy {
 //   client: mc.Client;
@@ -37,9 +36,13 @@ import { botconn } from './app.js';
 export class Conn {
     constructor(botOptions) {
         this.write = (name, data) => { };
+        this.writeRaw = (buffer) => { };
+        this.writeChannel = (channel, params) => { };
         this.packetlog = [];
         this.bot = mineflayer.createBot(botOptions);
         this.write = this.bot._client.write.bind(this.bot._client);
+        this.writeRaw = this.bot._client.writeRaw.bind(this.bot._client);
+        this.writeChannel = this.bot._client.writeChannel.bind(this.bot._client);
         this.metadata = [];
         this.bot._client.on('packet', (data, packetMeta) => {
             if (this.pclient) {
@@ -65,7 +68,7 @@ export class Conn {
     sendPackets(pclient) {
         let packets = this.generatePackets();
         packets.forEach(({ data, name }) => {
-            if ((name != 'map_chunk' || false) && true) {
+            if ((name != 'map_chunk' || false) && false) {
                 console.log('topclient', 'STATE', name, data);
             }
             pclient.write(name, data);
@@ -250,11 +253,12 @@ export class Conn {
     }
     link(pclient) {
         this.pclient = pclient;
+        this.bot._client.write = () => { };
+        this.bot._client.writeChannel = () => { };
+        this.bot._client.writeRaw = () => { };
         this.pclient.on('packet', (data, packetMeta) => {
             if (!['keep_alive'].includes(packetMeta.name)) {
                 this.write(packetMeta.name, data);
-                this.bot._client.write = () => { };
-                console.log('client', 'sentamessage');
             }
         });
         this.pclient.on('end', (reason) => {
@@ -265,11 +269,10 @@ export class Conn {
     unlink() {
         if (this.pclient) {
             this.bot._client.write = this.write.bind(this.bot._client);
+            this.bot._client.writeChannel = this.writeChannel.bind(this.bot._client);
+            this.bot._client.writeRaw = this.writeRaw.bind(this.bot._client);
             this.pclient.removeAllListeners();
-            this.pclient = mc.createClient({
-                username: 'notaclient',
-                connect: undefined,
-            });
+            this.pclient = undefined;
         }
     }
 }

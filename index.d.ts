@@ -17,6 +17,8 @@ export declare class Conn {
         };
     };
     write: (name: string, data: any) => void;
+    writeRaw: (buffer: any) => void;
+    writeChannel: (channel: any, params: any) => void;
     constructor(botOptions: mineflayer.BotOptions);
     sendPackets(pclient: mc.Client): void;
     generatePackets(): Packet[];
