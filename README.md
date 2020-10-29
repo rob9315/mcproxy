@@ -2,6 +2,8 @@
 
 A wrapper for mineflayer able to generate packets for actual minecraft clients to connect
 
+# DISCLAIMER: STILL WAITING FOR MINEFLAYER UPDATE TO LOG objectUUID
+
 ## Easy usage
 
 have the dependent program: nodejs (and npm)
