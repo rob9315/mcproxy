@@ -15,9 +15,6 @@ export class Conn {
                     console.log('there was a write error but it was catched, probably because the pclient disconnected');
                 }
             }
-            // if (packetMeta.name.includes('window')) {
-            //   console.log(packetMeta.name, data);
-            // }
         });
         //* entity metadata tracking
         this.bot._client.on('packet', (data, packetMeta) => {
@@ -31,9 +28,6 @@ export class Conn {
     sendPackets(pclient) {
         let packets = this.generatePackets();
         packets.forEach(({ data, name }) => {
-            // if ((name != 'map_chunk' || false) && false) {
-            //   console.log('topclient', 'STATE', name, data);
-            // }
             pclient.write(name, data);
         });
     }
@@ -94,7 +88,8 @@ export class Conn {
                                     UUID: player.uuid,
                                     name: player.username,
                                     properties: [
-                                    // { //! disabled currently, if even able to generate these strings
+                                    //TODO get Textures from mojang
+                                    // {
                                     //   name: "textures",
                                     //   signature:
                                     //     "",
@@ -127,6 +122,19 @@ export class Conn {
                 }
             }
         }
+        function getBlockEntities(chunkX, chunkZ) {
+            let blockEntities = [];
+            for (const index in bot._blockEntities) {
+                if (Object.prototype.hasOwnProperty.call(bot._blockEntities, index)) {
+                    const blockEntity = bot._blockEntities[index];
+                    if (Math.floor(blockEntity.x / 16) == chunkX &&
+                        Math.floor(blockEntity.z / 16) == chunkZ) {
+                        blockEntities.push(blockEntity.raw);
+                    }
+                }
+            }
+            return blockEntities;
+        }
         //* map_chunk (s)
         let columnArray = bot.world.getColumns();
         for (const index in columnArray) {
@@ -140,7 +148,7 @@ export class Conn {
                         bitMap: column.getMask(),
                         chunkData: column.dump(),
                         groundUp: true,
-                        blockEntities: [],
+                        blockEntities: getBlockEntities(chunkX, chunkZ),
                     },
                 });
             }
@@ -197,10 +205,20 @@ export class Conn {
                                 metadata: entity.rawMetadata,
                             },
                         });
+                        entity.equipment.forEach((item, index) => {
+                            packets.push({
+                                name: 'entity_equipment',
+                                data: {
+                                    entityId: entity.id,
+                                    slot: index,
+                                    item: item,
+                                },
+                            });
+                        });
                         break;
-                    //!WIP
+                    //TODO add global
                     case 'global':
-                        // console.log(entity.type, entity);
+                        console.log(entity.type, entity);
                         break;
                     case 'object':
                         packets.push({
@@ -230,6 +248,7 @@ export class Conn {
                             });
                         }
                         break;
+                    //TODO add other?
                     case 'other':
                         // console.log(entity.type, entity);
                         break;
@@ -268,6 +287,12 @@ export class Conn {
                 },
             });
         }
+        packets.push({
+            name: 'spawn_position',
+            data: {
+                location: bot.spawnPoint,
+            },
+        });
         return packets;
     }
     link(pclient) {

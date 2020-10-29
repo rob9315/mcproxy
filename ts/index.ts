@@ -110,7 +110,7 @@ export class Conn {
                   name: player.username,
                   properties: [
                     //TODO get Textures from mojang
-                    // { //! disabled currently, if even able to generate these strings
+                    // {
                     //   name: "textures",
                     //   signature:
                     //     "",
@@ -145,6 +145,27 @@ export class Conn {
       }
     }
 
+    function getBlockEntities(chunkX: number, chunkZ: number) {
+      let blockEntities = [];
+      for (const index in (bot as any)._blockEntities) {
+        if (
+          Object.prototype.hasOwnProperty.call(
+            (bot as any)._blockEntities,
+            index,
+          )
+        ) {
+          const blockEntity = (bot as any)._blockEntities[index];
+          if (
+            Math.floor(blockEntity.x / 16) == chunkX &&
+            Math.floor(blockEntity.z / 16) == chunkZ
+          ) {
+            blockEntities.push(blockEntity.raw);
+          }
+        }
+      }
+      return blockEntities;
+    }
+
     //* map_chunk (s)
     let columnArray = (bot as any).world.getColumns();
     for (const index in columnArray) {
@@ -158,7 +179,7 @@ export class Conn {
             bitMap: column.getMask(),
             chunkData: column.dump(),
             groundUp: true,
-            blockEntities: [], //TODO add blockEntities
+            blockEntities: getBlockEntities(chunkX, chunkZ),
           },
         });
       }
@@ -219,11 +240,22 @@ export class Conn {
                 metadata: (entity as any).rawMetadata,
               },
             });
+
+            entity.equipment.forEach((item, index) => {
+              packets.push({
+                name: 'entity_equipment',
+                data: {
+                  entityId: (entity as any).id,
+                  slot: index,
+                  item: item,
+                },
+              });
+            });
             break;
 
           //TODO add global
           case 'global':
-            // console.log(entity.type, entity);
+            console.log(entity.type, entity);
             break;
 
           case 'object':
@@ -303,6 +335,13 @@ export class Conn {
         },
       });
     }
+
+    packets.push({
+      name: 'spawn_position',
+      data: {
+        location: bot.spawnPoint,
+      },
+    });
 
     return packets;
   }
