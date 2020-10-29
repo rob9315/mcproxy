@@ -8,7 +8,6 @@ interface Packet {
 export declare class Conn {
     bot: mineflayer.Bot;
     pclient: mc.Client | undefined;
-    packetlog: Packet[];
     metadata: {
         [entityId: number]: {
             key: number;
@@ -17,8 +16,6 @@ export declare class Conn {
         };
     };
     write: (name: string, data: any) => void;
-    writeRaw: (buffer: any) => void;
-    writeChannel: (channel: any, params: any) => void;
     constructor(botOptions: mineflayer.BotOptions);
     sendPackets(pclient: mc.Client): void;
     generatePackets(): Packet[];

@@ -1,48 +1,10 @@
 import mineflayer from 'mineflayer';
 import { botconn } from './app.js';
-// export class simpleProxy {
-//   client: mc.Client;
-//   proxyServer: mc.Server;
-//   selectedProxyClient: mc.Client;
-//   constructor(
-//     pServerOptions: mc.ServerOptions,
-//     clientOptions: mc.ClientOptions,
-//   ) {
-//     this.client = new mc.Client(false, '');
-//     this.selectedProxyClient = new mc.Client(true, '');
-//     this.proxyServer = mc.createServer(pServerOptions);
-//     this.proxyServer.once('login', (proxyClient) => {
-//       this.selectedProxyClient = proxyClient;
-//       this.client = mc.createClient(clientOptions);
-//       this.client.on('packet', (data, packetMeta) => {
-//         for (const key in this.proxyServer.clients) {
-//           if (
-//             Object.prototype.hasOwnProperty.call(this.proxyServer.clients, key)
-//           ) {
-//             const proxyClient = this.proxyServer.clients[key];
-//             proxyClient.write(packetMeta.name, data);
-//           }
-//         }
-//       });
-//       this.selectedProxyClient.on('packet', (data, packetMeta) => {
-//         this.client.write(packetMeta.name, data);
-//       });
-//     });
-//   }
-//   getProxyClients() {
-//     return this.proxyServer.clients;
-//   }
-// }
 export class Conn {
     constructor(botOptions) {
         this.write = (name, data) => { };
-        this.writeRaw = (buffer) => { };
-        this.writeChannel = (channel, params) => { };
-        this.packetlog = [];
         this.bot = mineflayer.createBot(botOptions);
         this.write = this.bot._client.write.bind(this.bot._client);
-        this.writeRaw = this.bot._client.writeRaw.bind(this.bot._client);
-        this.writeChannel = this.bot._client.writeChannel.bind(this.bot._client);
         this.metadata = [];
         this.bot._client.on('packet', (data, packetMeta) => {
             if (this.pclient) {
@@ -53,12 +15,8 @@ export class Conn {
                     console.log('there was a write error but it was catched, probably because the pclient disconnected');
                 }
             }
-            // if (!['keep_alive', 'update_time'].includes(packetMeta.name) && false) {
-            //   this.packetlog.push({
-            //     name: packetMeta.name,
-            //     data: data,
-            //     state: packetMeta.state,
-            //   });
+            // if (packetMeta.name.includes('window')) {
+            //   console.log(packetMeta.name, data);
             // }
         });
         //* entity metadata tracking
@@ -66,16 +24,16 @@ export class Conn {
             if (Object.prototype.hasOwnProperty.call(data, 'metadata') &&
                 Object.prototype.hasOwnProperty.call(data, 'entityId') &&
                 this.bot.entities[data.entityId]) {
-                this.metadata[data.entityId] = data.metadata;
+                this.bot.entities[data.entityId].rawMetadata = data.metadata;
             }
         });
     }
     sendPackets(pclient) {
         let packets = this.generatePackets();
         packets.forEach(({ data, name }) => {
-            if ((name != 'map_chunk' || false) && false) {
-                console.log('topclient', 'STATE', name, data);
-            }
+            // if ((name != 'map_chunk' || false) && false) {
+            //   console.log('topclient', 'STATE', name, data);
+            // }
             pclient.write(name, data);
         });
     }
@@ -162,7 +120,7 @@ export class Conn {
                                 z: player.entity.position.z,
                                 yaw: player.entity.yaw,
                                 pitch: player.entity.pitch,
-                                metadata: this.metadata[player.entity.id],
+                                metadata: player.entity.rawMetadata,
                             },
                         });
                     }
@@ -236,27 +194,97 @@ export class Conn {
                                 velocityX: entity.velocity.x,
                                 velocityY: entity.velocity.y,
                                 velocityZ: entity.velocity.z,
-                                metadata: this.metadata[entity.id],
+                                metadata: entity.rawMetadata,
                             },
                         });
                         break;
                     //!WIP
                     case 'global':
-                        //packets.push()
+                        // console.log(entity.type, entity);
+                        break;
+                    case 'object':
+                        packets.push({
+                            name: 'spawn_entity',
+                            data: {
+                                entityId: entity.id,
+                                objectUUID: entity.uuid,
+                                type: entity.entityType,
+                                x: entity.position.x,
+                                y: entity.position.y,
+                                z: entity.position.z,
+                                yaw: entity.yaw,
+                                pitch: entity.pitch,
+                                objectData: entity.objectData,
+                                velocityX: entity.velocity.x,
+                                velocityY: entity.velocity.y,
+                                velocityZ: entity.velocity.z,
+                            },
+                        });
+                        if (entity.rawMetadata) {
+                            packets.push({
+                                name: 'entity_metadata',
+                                data: {
+                                    entityId: entity.id,
+                                    metadata: entity.rawMetadata,
+                                },
+                            });
+                        }
+                        break;
+                    case 'other':
+                        // console.log(entity.type, entity);
                         break;
                 }
             }
+        }
+        let items = [];
+        this.bot.inventory.slots.forEach((item, index) => {
+            if (item == null) {
+                item = { type: -1 };
+            }
+            if (item.nbt == null) {
+                item.nbt = undefined;
+            }
+            items[index] = {
+                blockId: item.type,
+                itemCount: item.count,
+                itemDamage: item.metadata,
+                nbtData: item.nbt,
+            };
+        });
+        if (items.length > 0) {
+            packets.push({
+                name: 'window_items',
+                data: {
+                    windowId: 0,
+                    items: items,
+                },
+            });
+        }
+        if (bot.quickBarSlot) {
+            packets.push({
+                name: 'held_item_slot',
+                data: {
+                    slot: bot.quickBarSlot,
+                },
+            });
         }
         return packets;
     }
     link(pclient) {
         this.pclient = pclient;
         this.bot._client.write = this.writeIf.bind(this);
-        //this.bot._client.writeChannel = () => {};
-        //this.bot._client.writeRaw = () => {};
         this.pclient.on('packet', (data, packetMeta) => {
             if (!['keep_alive'].includes(packetMeta.name)) {
                 this.write(packetMeta.name, data);
+            }
+            if (packetMeta.name.includes('position')) {
+                this.bot.entity.position.x = data.x;
+                this.bot.entity.position.y = data.y;
+                this.bot.entity.position.z = data.z;
+            }
+            if (packetMeta.name.includes('look')) {
+                this.bot.entity.yaw = data.yaw;
+                this.bot.entity.pitch = data.pitch;
             }
         });
         this.pclient.on('end', (reason) => {
@@ -271,8 +299,6 @@ export class Conn {
     unlink() {
         if (this.pclient) {
             this.bot._client.write = this.write.bind(this.bot._client);
-            //this.bot._client.writeChannel = this.writeChannel.bind(this.bot._client);
-            //this.bot._client.writeRaw = this.writeRaw.bind(this.bot._client);
             this.pclient.removeAllListeners();
             this.pclient = undefined;
         }

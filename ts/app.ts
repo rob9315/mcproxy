@@ -22,9 +22,6 @@ botconn.bot._client.on('packet', (data, packetMeta) => {
   if (packetMeta.name == 'chat' && data.message.includes('debug')) {
     console.log();
   }
-  // if (!['keep_alive', 'update_time'].includes(packetMeta.name) && false) {
-  //   console.log('tobot', packetMeta.state, packetMeta.name, data);
-  // }
 });
 
 server.on('login', (client) => {
