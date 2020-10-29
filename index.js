@@ -286,6 +286,9 @@ export class Conn {
                 this.bot.entity.yaw = data.yaw;
                 this.bot.entity.pitch = data.pitch;
             }
+            if (packetMeta.name == 'held_item_slot') {
+                this.bot.quickBarSlot = data.slotId;
+            }
         });
         this.pclient.on('end', (reason) => {
             console.log('pclient ended because of reason:', reason);

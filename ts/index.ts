@@ -27,9 +27,6 @@ export class Conn {
           );
         }
       }
-      // if (packetMeta.name.includes('window')) {
-      //   console.log(packetMeta.name, data);
-      // }
     });
 
     //* entity metadata tracking
@@ -47,9 +44,6 @@ export class Conn {
   sendPackets(pclient: mc.Client) {
     let packets: Packet[] = this.generatePackets();
     packets.forEach(({ data, name }) => {
-      // if ((name != 'map_chunk' || false) && false) {
-      //   console.log('topclient', 'STATE', name, data);
-      // }
       pclient.write(name, data);
     });
   }
@@ -63,7 +57,7 @@ export class Conn {
       name: 'login',
       data: {
         entityId: (bot.entity as any).id,
-        gameMode: bot.game.gameMode, //! please test if this is bot.game.gameMode or bot.player.gameMode
+        gameMode: bot.game.gameMode,
         dimension: bot.game.dimension,
         difficulty: bot.game.difficulty,
         maxPlayers: bot.game.maxPlayers,
@@ -115,6 +109,7 @@ export class Conn {
                   UUID: player.uuid,
                   name: player.username,
                   properties: [
+                    //TODO get Textures from mojang
                     // { //! disabled currently, if even able to generate these strings
                     //   name: "textures",
                     //   signature:
@@ -163,7 +158,7 @@ export class Conn {
             bitMap: column.getMask(),
             chunkData: column.dump(),
             groundUp: true,
-            blockEntities: [], //! BLOCKENTITIES
+            blockEntities: [], //TODO add blockEntities
           },
         });
       }
@@ -226,7 +221,7 @@ export class Conn {
             });
             break;
 
-          //!WIP
+          //TODO add global
           case 'global':
             // console.log(entity.type, entity);
             break;
@@ -260,6 +255,7 @@ export class Conn {
             }
             break;
 
+          //TODO add other?
           case 'other':
             // console.log(entity.type, entity);
             break;
@@ -326,6 +322,9 @@ export class Conn {
       if (packetMeta.name.includes('look')) {
         this.bot.entity.yaw = data.yaw;
         this.bot.entity.pitch = data.pitch;
+      }
+      if (packetMeta.name == 'held_item_slot') {
+        this.bot.quickBarSlot = data.slotId;
       }
     });
     this.pclient.on('end', (reason) => {
