@@ -4,8 +4,6 @@ A wrapper for mineflayer able to generate packets for actual minecraft clients t
 
 This project includes a working proxy instance but the main focus is to make persistency through reconnections available as an importable class. 
 
-# DISCLAIMER: STILL WAITING FOR MINEFLAYER UPDATE TO LOG objectUUID
-
 ## Easy usage
 
 have the dependent program: nodejs (and npm)
