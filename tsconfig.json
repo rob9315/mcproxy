@@ -4,7 +4,6 @@
     "module": "esnext",
     "sourceMap": true,
     "declaration": true,
-//    "declarationMap": true,
     "strict": true,
     "resolveJsonModule": true,
     "moduleResolution": "node",
