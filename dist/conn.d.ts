@@ -8,18 +8,13 @@ interface Packet {
 export declare class Conn {
     bot: mineflayer.Bot;
     pclient?: mc.Client;
-    metadata: {
-        [entityId: number]: {
-            key: number;
-            type: number;
-            value: any;
-        };
-    };
+    private metadata;
     excludedPacketNames: string[];
     write: (name: string, data: any) => void;
     constructor(botOptions: mineflayer.BotOptions, relayExcludedPacketNames?: string[]);
     sendPackets(pclient: mc.Client): void;
     generatePackets(): Packet[];
+    sendLoginPacket(pclient: mc.Client): void;
     link(pclient: mc.Client): void;
     unlink(): void;
     writeIf(name: string, data: any): void;

@@ -15,10 +15,7 @@ export class Conn {
   };
   excludedPacketNames: string[];
   write = (name: string, data: any): void => {};
-  constructor(
-    botOptions: mineflayer.BotOptions,
-    relayExcludedPacketNames?: string[]
-  ) {
+  constructor(botOptions: mineflayer.BotOptions, relayExcludedPacketNames?: string[]) {
     this.bot = mineflayer.createBot(botOptions);
     this.write = this.bot._client.write.bind(this.bot._client);
     this.metadata = [];
@@ -28,9 +25,7 @@ export class Conn {
         try {
           this.pclient.write(packetMeta.name, data);
         } catch (error) {
-          console.log(
-            "there was a write error but it was catched, probably because the pclient disconnected"
-          );
+          console.log("there was a write error but it was catched, probably because the pclient disconnected");
         }
       }
     });
@@ -150,24 +145,12 @@ export class Conn {
       }
     }
 
-    function getBlockEntities(
-      bot: mineflayer.Bot,
-      chunkX: number,
-      chunkZ: number
-    ) {
+    function getBlockEntities(bot: mineflayer.Bot, chunkX: number, chunkZ: number) {
       let blockEntities = [];
       for (const index in (bot as any)._blockEntities) {
-        if (
-          Object.prototype.hasOwnProperty.call(
-            (bot as any)._blockEntities,
-            index
-          )
-        ) {
+        if (Object.prototype.hasOwnProperty.call((bot as any)._blockEntities, index)) {
           const blockEntity = (bot as any)._blockEntities[index];
-          if (
-            Math.floor(blockEntity.x / 16) == chunkX &&
-            Math.floor(blockEntity.z / 16) == chunkZ
-          ) {
+          if (Math.floor(blockEntity.x / 16) == chunkX && Math.floor(blockEntity.z / 16) == chunkZ) {
             blockEntities.push(blockEntity.raw);
           }
         }
@@ -354,7 +337,12 @@ export class Conn {
 
     return packets;
   }
-
+  sendLoginPacket(pclient: mc.Client): void {
+    pclient.write("login", {
+      entityId: 9001,
+      levelType: "default",
+    });
+  }
   link(pclient: mc.Client): void {
     this.pclient = pclient;
     this.bot._client.write = this.writeIf.bind(this);

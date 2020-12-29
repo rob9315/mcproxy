@@ -13,76 +13,101 @@ class ConnContainer {
     }
 }
 export class ProxyServer extends mc.Server {
-    constructor(options) {
+    constructor(options, requireAdminPassword) {
         super(undefined);
         this.connList = [];
+        this.requireAdminPassword = requireAdminPassword || false;
         this.server = mc.createServer(options);
         this.server.on("login", (pclient) => {
             this.handleUser(pclient);
         });
     }
     handleUser(pclient) {
-        pclient.write("login", {
-            entityId: 15200,
-            dimension: "minecraft:the_end",
-            //difficulty: "easy",
-            //gamemode: "spectator",
-            levelType: "default",
-        });
+        pclient.write("login", { entityId: 9001, levelType: "default" });
         pclient.write("position", { x: 0, y: 0, z: 0 });
-        this.sendMessage(pclient, "hello there", "mcproxy", ",connect <host>:<port>");
+        this.sendMessage(pclient, "hello there", "mcproxy", ",connect <connName> <connPassword>");
         pclient.on("packet", (data, meta) => {
-            if (meta.name == "chat" && data.message.startsWith(",")) {
+            if (meta.name == "chat") {
                 let msg = data.message;
-                switch (true) {
-                    case msg.startsWith(",connect"): {
-                        let splitmsgarr = msg.split(" ");
-                        if (splitmsgarr.length == 4) {
-                            let addr = splitmsgarr[1].split(":");
-                            if (!isNaN(+addr[1]) && !this.connList[splitmsgarr[2]]) {
-                                this.connList[splitmsgarr[2]] = new ConnContainer(this.newConn(pclient, {
-                                    username: pclient.username,
-                                    host: addr[0],
-                                    port: +addr[1],
-                                }, ["keep_alive", "chat"]), splitmsgarr[3]);
-                            }
-                        }
-                        else {
-                            this.sendMessage(pclient, "that is not the correct form", "mcproxy", ".connect <host>:<port> <roomname> <roompassword>");
-                        }
-                    }
-                    case msg.startsWith(",reconnect"): {
-                        let splitmsgarr = msg.split(" ");
-                        if (splitmsgarr.length == 3) {
-                            if (this.connList[splitmsgarr[1]]) {
-                                if (this.connList[splitmsgarr[1]].verifyPassword(splitmsgarr[2])) {
-                                    this.connList[splitmsgarr[1]].connection.sendPackets(pclient);
-                                    this.connList[splitmsgarr[1]].connection.link(pclient);
-                                }
-                                else {
-                                    this.sendMessage(pclient, `you have an incorrect password`, "mcproxy");
+                let splitmsg = msg.split(" ");
+                if (splitmsg.length > 1) {
+                    switch (splitmsg[0].toLowerCase()) {
+                        case ",connect": {
+                            if (splitmsg.length === 3) {
+                                if (this.connList[splitmsg[1]].verifyPassword(splitmsg[2])) {
+                                    this.connList[splitmsg[1]].connection.sendPackets(pclient);
+                                    this.connList[splitmsg[1]].connection.link(pclient);
                                 }
                             }
-                            else {
-                                this.sendMessage(pclient, `there is no room with the name of "${splitmsgarr[1]}"`, "mcproxy");
+                            else
+                                this.wrongCommand(pclient, "wrong use of ',connect'", ",help");
+                        }
+                        case ",conn": {
+                            if (splitmsg.length > 2) {
+                                switch (splitmsg[1].toLowerCase()) {
+                                    case "new": {
+                                        if (splitmsg.length == 5 && splitmsg[2].split(":").length == 2 && !isNaN(+splitmsg[2].split(":")[1])) {
+                                            this.connList[splitmsg[3]] = new ConnContainer(this.newConn(pclient, { username: pclient.username, host: splitmsg[2].split(":")[0], port: +splitmsg[2].split(":")[1] }, false, ["keep_alive", "chat"]));
+                                        }
+                                    }
+                                    case "list": {
+                                    }
+                                    case "change": {
+                                    }
+                                    case "delete": {
+                                    }
+                                    case "restart": {
+                                    }
+                                    case "option": {
+                                        if (splitmsg.length > 3) {
+                                            switch (splitmsg[2].toLowerCase()) {
+                                                case "reconnect": {
+                                                }
+                                                case "2b2tnotification": {
+                                                }
+                                                default:
+                                                    this.wrongCommand(pclient, `,conn has the options [reconnect,2b2tnotification], "${splitmsg[2].toLowerCase()}" is not one of them`, ",conn option <option>");
+                                            }
+                                        }
+                                    }
+                                    default:
+                                        this.wrongCommand(pclient, `,conn has the options [new,list,change,delete,restart,option], "${splitmsg[1].toLowerCase()}" is not one of them.`, ",conn <option>");
+                                }
                             }
                         }
+                        case ",this": {
+                            switch (splitmsg[1].toLowerCase()) {
+                                case "change": {
+                                }
+                                case "delete": {
+                                }
+                                case "restart": {
+                                }
+                                default:
+                                    this.wrongCommand(pclient, `,this hat the options [change,delete,restart], "${splitmsg[1].toLowerCase()}" is not one of them.`);
+                            }
+                        }
+                        case ",shutdown": {
+                        }
+                        default:
+                            this.wrongCommand(pclient, `${splitmsg[0].toLowerCase()} is not a valid mcproxy command`, ",help");
                     }
                 }
             }
         });
     }
-    newConn(pclient, clientOptions, excludedPacketNames) {
+    wrongCommand(pclient, s, cmd) {
+        //this.sendMessage(pclient, s, "mcproxy", cmd);
+        console.log(pclient, s, "mcproxy", cmd);
+    }
+    newConn(pclient, clientOptions, instantConnect, excludedPacketNames) {
         const connection = new conn.Conn(clientOptions, excludedPacketNames);
-        connection.bot._client.on("packet", (data, meta) => {
-            if (meta.name == "chat") {
-                console.log(data);
-            }
-        });
-        connection.bot.once("spawn", () => {
-            connection.sendPackets(pclient);
-            connection.link(pclient);
-        });
+        if (instantConnect) {
+            connection.bot.once("spawn", () => {
+                connection.sendPackets(pclient);
+                connection.link(pclient);
+            });
+        }
         return connection;
     }
     sendMessage(pclient, message, sender, suggestcommand) {

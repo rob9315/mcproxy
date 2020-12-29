@@ -126,8 +126,7 @@ export class Conn {
             for (const index in bot._blockEntities) {
                 if (Object.prototype.hasOwnProperty.call(bot._blockEntities, index)) {
                     const blockEntity = bot._blockEntities[index];
-                    if (Math.floor(blockEntity.x / 16) == chunkX &&
-                        Math.floor(blockEntity.z / 16) == chunkZ) {
+                    if (Math.floor(blockEntity.x / 16) == chunkX && Math.floor(blockEntity.z / 16) == chunkZ) {
                         blockEntities.push(blockEntity.raw);
                     }
                 }
@@ -293,6 +292,12 @@ export class Conn {
             },
         });
         return packets;
+    }
+    sendLoginPacket(pclient) {
+        pclient.write("login", {
+            entityId: 9001,
+            levelType: "default",
+        });
     }
     link(pclient) {
         this.pclient = pclient;
