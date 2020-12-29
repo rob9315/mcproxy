@@ -78,7 +78,7 @@ this lets you change the name and /or password of the Connection you are current
 
 this lets you change the name of the Connection you are on
 
-### `,this change password`
+#### `,this change password`
 
 ```
 ,this change password <newConnPassword>
