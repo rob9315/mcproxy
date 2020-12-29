@@ -30,7 +30,7 @@ connect with your preferred minecraft client to
 localhost:25566
 ```
 
-and use the appropriate [commands](https://github.com/rob9315/mcproxy/master/COMMANDS.md) via the ingame chat
+and use the appropriate [commands](https://github.com/Rob9315/mcproxy/blob/master/COMMANDS.md) via the ingame chat
 
 ## API
 
