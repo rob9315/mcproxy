@@ -2,7 +2,7 @@
 
 A wrapper for mineflayer able to generate packets for actual minecraft clients to connect to
 
-This project includes a working proxy instance but the main focus is to make persistency through reconnections available as an importable class. 
+This project includes a working proxy instance but the main focus is to make persistency through reconnections available as an importable class.
 
 ## Easy usage
 
@@ -30,7 +30,7 @@ connect with your preferred minecraft client to
 localhost:25566
 ```
 
-and use the appropriate (commands)[https://github.com/rob9315/mcproxy/master/COMMANDS.md] via the ingame chat
+and use the appropriate [commands](https://github.com/rob9315/mcproxy/master/COMMANDS.md) via the ingame chat
 
 ## API
 
