@@ -16,21 +16,21 @@ git clone github.com/Rob9315/mcproxy.git
 
 or the raw zip
 
-edit app.js in lines 14 to 17 to reflect the server address you are trying to connect to and your credentials.
-
 then open a terminal in your folder and run
 
 ```shell
-node app.js
+npm start
 ```
 
-to start the proxy.
+to start the proxy server.
 
-last step is to open your preferred minecraft client and connect to
+connect with your preferred minecraft client to
 
 ```
 localhost:25566
 ```
+
+and use the appropriate (commands)[https://github.com/rob9315/mcproxy/master/COMMANDS.md] via the ingame chat
 
 ## API
 
