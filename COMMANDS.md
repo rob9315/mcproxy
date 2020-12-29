@@ -101,3 +101,5 @@ this lets you change the password of the Connection you are on
 this restarts the connection you are currently on
 
 ## `,shutdown <adminPassword>`
+
+disconnects every Connection and ends the program
