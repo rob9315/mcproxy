@@ -1,4 +1,4 @@
-# commands for [mcproxy](https://github.com/rob9315/mcproxy/)
+# commands for [mcproxy](https://github.com/rob9315/mcproxy/) **(WIP, commands mostly not ready)**
 
 mcproxy commands are inputted via the ingame chat and will be filtered out when connected to a server. all mcproxy commands start with a comma (`,`)
 

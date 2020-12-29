@@ -10,7 +10,9 @@ interface Packet {
 export class Conn {
   bot: mineflayer.Bot;
   pclient?: mc.Client;
-  metadata: { [entityId: number]: { key: number; type: number; value: any } };
+  private metadata: {
+    [entityId: number]: { key: number; type: number; value: any };
+  };
   excludedPacketNames: string[];
   write = (name: string, data: any): void => {};
   constructor(
