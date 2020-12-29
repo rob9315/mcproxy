@@ -5,19 +5,17 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Launch Program",
-      "program": "${workspaceFolder}/app.js",
+      "type": "node",
       "request": "launch",
-      "preLaunchTask": "tsc: build - tsconfig.json",
-      "skipFiles": ["<node_internals>/**"],
-      "type": "pwa-node"
-    },
-    {
-      "name": "Attach by Process ID",
-      "processId": "${command:PickProcess}",
-      "request": "attach",
-      "skipFiles": ["<node_internals>/**"],
-      "type": "pwa-node"
+      "name": "Launch Program",
+      "preLaunchTask": "npm: build",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "program": "${workspaceFolder}\\dist\\app.js",
+      "outFiles": [
+        "${workspaceFolder}/**/*.js"
+      ]
     }
   ]
 }

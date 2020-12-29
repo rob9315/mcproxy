@@ -1,6 +1,5 @@
-import mineflayer from 'mineflayer';
-import mc from 'minecraft-protocol';
-import { botconn } from './app.js';
+import mineflayer from "mineflayer";
+import mc from "minecraft-protocol";
 
 interface Packet {
   data: any;
@@ -10,30 +9,35 @@ interface Packet {
 
 export class Conn {
   bot: mineflayer.Bot;
-  pclient: mc.Client | undefined;
+  pclient?: mc.Client;
   metadata: { [entityId: number]: { key: number; type: number; value: any } };
+  excludedPacketNames: string[];
   write = (name: string, data: any): void => {};
-  constructor(botOptions: mineflayer.BotOptions) {
+  constructor(
+    botOptions: mineflayer.BotOptions,
+    relayExcludedPacketNames?: string[]
+  ) {
     this.bot = mineflayer.createBot(botOptions);
     this.write = this.bot._client.write.bind(this.bot._client);
     this.metadata = [];
-    this.bot._client.on('packet', (data, packetMeta) => {
+    this.excludedPacketNames = relayExcludedPacketNames || ["keep_alive"];
+    this.bot._client.on("packet", (data, packetMeta) => {
       if (this.pclient) {
         try {
           this.pclient.write(packetMeta.name, data);
         } catch (error) {
           console.log(
-            'there was a write error but it was catched, probably because the pclient disconnected',
+            "there was a write error but it was catched, probably because the pclient disconnected"
           );
         }
       }
     });
 
     //* entity metadata tracking
-    this.bot._client.on('packet', (data, packetMeta) => {
+    this.bot._client.on("packet", (data, packetMeta) => {
       if (
-        Object.prototype.hasOwnProperty.call(data, 'metadata') &&
-        Object.prototype.hasOwnProperty.call(data, 'entityId') &&
+        Object.prototype.hasOwnProperty.call(data, "metadata") &&
+        Object.prototype.hasOwnProperty.call(data, "entityId") &&
         this.bot.entities[data.entityId]
       ) {
         (this.bot.entities[data.entityId] as any).rawMetadata = data.metadata;
@@ -49,19 +53,18 @@ export class Conn {
   }
 
   generatePackets(): Packet[] {
-    let bot = botconn.bot;
     let packets: Packet[] = [];
 
     //* login
     packets.push({
-      name: 'login',
+      name: "respawn",
       data: {
-        entityId: (bot.entity as any).id,
-        gameMode: bot.game.gameMode,
-        dimension: bot.game.dimension,
-        difficulty: bot.game.difficulty,
-        maxPlayers: bot.game.maxPlayers,
-        levelType: bot.game.levelType,
+        entityId: (this.bot.entity as any).id,
+        gameMode: this.bot.game.gameMode,
+        dimension: this.bot.game.dimension,
+        difficulty: this.bot.game.difficulty,
+        maxPlayers: this.bot.game.maxPlayers,
+        levelType: this.bot.game.levelType,
         reducedDebugInfo: false,
       },
     });
@@ -69,26 +72,26 @@ export class Conn {
     //* game_state_change
     //* sets the gamemode
     packets.push({
-      name: 'game_state_change',
+      name: "game_state_change",
       data: {
         reason: 3,
-        gameMode: bot.player.gamemode,
+        gameMode: this.bot.player.gamemode,
       },
     });
 
     //* player_info (personal)
     //* the players player_info packet
     packets.push({
-      name: 'player_info',
+      name: "player_info",
       data: {
         action: 0,
         data: [
           {
-            UUID: bot.player.uuid,
-            name: bot.username,
+            UUID: this.bot.player.uuid,
+            name: this.bot.username,
             properties: [],
-            gamemode: bot.player.gamemode,
-            ping: bot.player.ping,
+            gamemode: this.bot.player.gamemode,
+            ping: this.bot.player.ping,
             displayName: undefined,
           },
         ],
@@ -96,12 +99,12 @@ export class Conn {
     });
 
     //* player_info
-    for (const name in bot.players) {
-      if (Object.prototype.hasOwnProperty.call(bot.players, name)) {
-        const player = bot.players[name];
-        if (player.uuid != bot.player.uuid) {
+    for (const name in this.bot.players) {
+      if (Object.prototype.hasOwnProperty.call(this.bot.players, name)) {
+        const player = this.bot.players[name];
+        if (player.uuid != this.bot.player.uuid) {
           packets.push({
-            name: 'player_info',
+            name: "player_info",
             data: {
               action: 0,
               data: [
@@ -128,7 +131,7 @@ export class Conn {
 
           if (player.entity) {
             packets.push({
-              name: 'named_entity_spawn',
+              name: "named_entity_spawn",
               data: {
                 entityId: (player.entity as any).id,
                 playerUUID: player.uuid,
@@ -145,13 +148,17 @@ export class Conn {
       }
     }
 
-    function getBlockEntities(chunkX: number, chunkZ: number) {
+    function getBlockEntities(
+      bot: mineflayer.Bot,
+      chunkX: number,
+      chunkZ: number
+    ) {
       let blockEntities = [];
       for (const index in (bot as any)._blockEntities) {
         if (
           Object.prototype.hasOwnProperty.call(
             (bot as any)._blockEntities,
-            index,
+            index
           )
         ) {
           const blockEntity = (bot as any)._blockEntities[index];
@@ -167,19 +174,19 @@ export class Conn {
     }
 
     //* map_chunk (s)
-    let columnArray = (bot as any).world.getColumns();
+    let columnArray = (this.bot as any).world.getColumns();
     for (const index in columnArray) {
       if (Object.prototype.hasOwnProperty.call(columnArray, index)) {
         const { chunkX, chunkZ, column } = columnArray[index];
         packets.push({
-          name: 'map_chunk',
+          name: "map_chunk",
           data: {
             x: chunkX,
             z: chunkZ,
             bitMap: column.getMask(),
             chunkData: column.dump(),
             groundUp: true,
-            blockEntities: getBlockEntities(chunkX, chunkZ),
+            blockEntities: getBlockEntities(this.bot, chunkX, chunkZ),
           },
         });
       }
@@ -187,24 +194,24 @@ export class Conn {
 
     //* position
     packets.push({
-      name: 'position',
+      name: "position",
       data: {
-        x: bot.entity.position.x,
-        y: bot.entity.position.y,
-        z: bot.entity.position.z,
-        yaw: bot.entity.yaw,
-        pitch: bot.entity.pitch,
+        x: this.bot.entity.position.x,
+        y: this.bot.entity.position.y,
+        z: this.bot.entity.position.z,
+        yaw: this.bot.entity.yaw,
+        pitch: this.bot.entity.pitch,
       },
     });
 
     //* entity stuff
-    for (const index in bot.entities) {
-      if (Object.prototype.hasOwnProperty.call(bot.entities, index)) {
-        const entity = bot.entities[index];
+    for (const index in this.bot.entities) {
+      if (Object.prototype.hasOwnProperty.call(this.bot.entities, index)) {
+        const entity = this.bot.entities[index];
         switch (entity.type) {
-          case 'orb':
+          case "orb":
             packets.push({
-              name: 'spawn_entity_experience_orb',
+              name: "spawn_entity_experience_orb",
               data: {
                 entityId: ((entity as unknown) as any).id,
                 x: entity.position.x,
@@ -215,15 +222,15 @@ export class Conn {
             });
             break;
 
-          case 'player':
+          case "player":
             {
               //* handled with the player_info packets
             }
             break;
 
-          case 'mob':
+          case "mob":
             packets.push({
-              name: 'spawn_entity_living',
+              name: "spawn_entity_living",
               data: {
                 entityId: ((entity as unknown) as any).id,
                 entityUUID: ((entity as unknown) as any).uuid,
@@ -243,7 +250,7 @@ export class Conn {
 
             entity.equipment.forEach((item, index) => {
               packets.push({
-                name: 'entity_equipment',
+                name: "entity_equipment",
                 data: {
                   entityId: (entity as any).id,
                   slot: index,
@@ -254,13 +261,13 @@ export class Conn {
             break;
 
           //TODO add global
-          case 'global':
+          case "global":
             console.log(entity.type, entity);
             break;
 
-          case 'object':
+          case "object":
             packets.push({
-              name: 'spawn_entity',
+              name: "spawn_entity",
               data: {
                 entityId: (entity as any).id,
                 objectUUID: (entity as any).uuid,
@@ -278,7 +285,7 @@ export class Conn {
             });
             if ((entity as any).rawMetadata) {
               packets.push({
-                name: 'entity_metadata',
+                name: "entity_metadata",
                 data: {
                   entityId: (entity as any).id,
                   metadata: (entity as any).rawMetadata,
@@ -288,7 +295,7 @@ export class Conn {
             break;
 
           //TODO add other?
-          case 'other':
+          case "other":
             // console.log(entity.type, entity);
             break;
         }
@@ -319,7 +326,7 @@ export class Conn {
 
     if (items.length > 0) {
       packets.push({
-        name: 'window_items',
+        name: "window_items",
         data: {
           windowId: 0,
           items: items,
@@ -327,19 +334,19 @@ export class Conn {
       });
     }
 
-    if (bot.quickBarSlot) {
+    if (this.bot.quickBarSlot) {
       packets.push({
-        name: 'held_item_slot',
+        name: "held_item_slot",
         data: {
-          slot: bot.quickBarSlot,
+          slot: this.bot.quickBarSlot,
         },
       });
     }
 
     packets.push({
-      name: 'spawn_position',
+      name: "spawn_position",
       data: {
-        location: bot.spawnPoint,
+        location: this.bot.spawnPoint,
       },
     });
 
@@ -349,29 +356,29 @@ export class Conn {
   link(pclient: mc.Client): void {
     this.pclient = pclient;
     this.bot._client.write = this.writeIf.bind(this);
-    this.pclient.on('packet', (data, packetMeta) => {
-      if (!['keep_alive'].includes(packetMeta.name)) {
+    this.pclient.on("packet", (data, packetMeta) => {
+      if (!this.excludedPacketNames.includes(packetMeta.name)) {
         this.write(packetMeta.name, data);
       }
-      if (packetMeta.name.includes('position')) {
+      if (packetMeta.name.includes("position")) {
         this.bot.entity.position.x = data.x;
         this.bot.entity.position.y = data.y;
         this.bot.entity.position.z = data.z;
       }
-      if (packetMeta.name.includes('look')) {
+      if (packetMeta.name.includes("look")) {
         this.bot.entity.yaw = data.yaw;
         this.bot.entity.pitch = data.pitch;
       }
-      if (packetMeta.name == 'held_item_slot') {
+      if (packetMeta.name == "held_item_slot") {
         this.bot.quickBarSlot = data.slotId;
       }
     });
-    this.pclient.on('end', (reason) => {
-      console.log('pclient ended because of reason:', reason);
+    this.pclient.on("end", (reason) => {
+      console.log("pclient ended because of reason:", reason);
       this.unlink();
     });
-    this.pclient.on('error', (error) => {
-      console.log('pclient threw an error, maybe just a disconnection?');
+    this.pclient.on("error", (error) => {
+      console.log("pclient threw an error, maybe just a disconnection?");
       this.unlink();
     });
   }
@@ -383,7 +390,7 @@ export class Conn {
     }
   }
   writeIf(name: string, data: any): void {
-    if (['keep_alive'].includes(name)) {
+    if (["keep_alive"].includes(name)) {
       this.write(name, data);
     }
   }

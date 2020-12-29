@@ -1,5 +1,5 @@
-import mineflayer from 'mineflayer';
-import mc from 'minecraft-protocol';
+import mineflayer from "mineflayer";
+import mc from "minecraft-protocol";
 interface Packet {
     data: any;
     name: string;
@@ -7,7 +7,7 @@ interface Packet {
 }
 export declare class Conn {
     bot: mineflayer.Bot;
-    pclient: mc.Client | undefined;
+    pclient?: mc.Client;
     metadata: {
         [entityId: number]: {
             key: number;
@@ -15,8 +15,9 @@ export declare class Conn {
             value: any;
         };
     };
+    excludedPacketNames: string[];
     write: (name: string, data: any) => void;
-    constructor(botOptions: mineflayer.BotOptions);
+    constructor(botOptions: mineflayer.BotOptions, relayExcludedPacketNames?: string[]);
     sendPackets(pclient: mc.Client): void;
     generatePackets(): Packet[];
     link(pclient: mc.Client): void;
@@ -24,4 +25,3 @@ export declare class Conn {
     writeIf(name: string, data: any): void;
 }
 export {};
-//# sourceMappingURL=index.d.ts.map
