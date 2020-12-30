@@ -1,5 +1,5 @@
-import * as conn from "./conn.js";
-import * as mc from "minecraft-protocol";
+import * as conn from './conn.js';
+import * as mc from 'minecraft-protocol';
 interface proxyServerOptions extends mc.ServerOptions {
 }
 declare class ConnContainer {
