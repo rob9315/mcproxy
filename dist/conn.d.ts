@@ -1,5 +1,5 @@
-import mineflayer from "mineflayer";
-import mc from "minecraft-protocol";
+import mineflayer from 'mineflayer';
+import mc from 'minecraft-protocol';
 interface Packet {
     data: any;
     name: string;
@@ -18,5 +18,6 @@ export declare class Conn {
     link(pclient: mc.Client): void;
     unlink(): void;
     writeIf(name: string, data: any): void;
+    disconnect(): void;
 }
 export {};

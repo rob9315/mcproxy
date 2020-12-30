@@ -18,120 +18,137 @@ class ConnContainer {
   }
 }
 
-export class ProxyServer extends mc.Server {
+export class ProxyServer {
   connList: ConnContainer[];
+  userList: conn.Conn[];
   server: mc.Server;
   requireAdminPassword: boolean;
   constructor(options: proxyServerOptions, requireAdminPassword?: boolean) {
-    super((undefined as unknown) as any);
     this.connList = [];
+    this.userList = [];
     this.requireAdminPassword = requireAdminPassword || false;
     this.server = mc.createServer(options);
     this.server.on('login', (pclient) => {
       this.handleUser(pclient);
     });
+    console.log('proxyServer UP');
   }
   handleUser(pclient: mc.Client) {
     pclient.write('login', { entityId: 9001, levelType: 'default' });
     pclient.write('position', { x: 0, y: 0, z: 0 });
-    this.sendMessage(pclient, 'hello there', 'mcproxy', ',connect <connName> <connPassword>');
+    this.sendMessage(pclient, 'welcome to mcproxy, a project by Rob9315', { suggestcommand: ',connect <connName> <connPassword>' });
+    this.sendMessage(pclient, `to see all commands, type ',help'`);
     pclient.on('packet', (data, meta) => {
       if (meta.name == 'chat') {
         let msg: string = data.message;
         let splitmsg: string[] = msg.split(' ');
+        splitmsg.forEach((value) => (value = value.toLowerCase()));
         switch (splitmsg.length > 0) {
           case false:
-            this.sendMessage(pclient, 'no1');
+            this.sendMessage(pclient, 'what');
+            this.sendMessage(pclient, 'how');
             break;
-          case splitmsg[0].toLowerCase() === ',connect':
+          case splitmsg[0] === ',help':
+            this.sendMessage(pclient, `visit https://github.com/rob9315/mcproxy/blobs/master/commands.md for all commands`);
+            break;
+          case splitmsg[0] === ',connect':
             if (splitmsg.length === 3) {
               if (this.connList[splitmsg[1] as any]?.verifyPassword(splitmsg[2])) {
-                this.connList[splitmsg[1] as any].connection.sendPackets(pclient);
-                this.connList[splitmsg[1] as any].connection.link(pclient);
+                this.userList[pclient as any]?.unlink();
+                this.userList[pclient as any] = this.connList[splitmsg[1] as any].connection;
+                this.userList[pclient as any].sendPackets(pclient);
+                this.userList[pclient as any].link(pclient);
+                this.sendMessage(pclient, 'you should be connected');
               } else {
-                this.sendMessage(pclient, 'no2');
+                this.sendMessage(pclient, `wrong password for Connection '${splitmsg[1]}, or it does not exist'`);
               }
             } else {
-              //this.wrongCommand(pclient, "wrong use of ',connect'", ',help');
-              this.sendMessage(pclient, 'no3');
+              this.sendMessage(pclient, `wrong amount of parameters specified for ,connect`, { suggestcommand: ',help' });
             }
             break;
-          case splitmsg[0].toLowerCase() === ',conn':
+          case splitmsg[0] === ',conn':
             switch (splitmsg.length > 1) {
               case false:
-                //this.wrongCommand(pclient, 'wrong amount of arguments for ,conn', ',help');
-                this.sendMessage(pclient, 'no4');
+                this.sendMessage(pclient, 'wrong amount of parameters specified for ,conn', { suggestcommand: ',help' });
                 break;
-              case splitmsg[1].toLowerCase() === 'new':
+              case splitmsg[1] === 'new':
                 if (splitmsg.length === 5 && splitmsg[2].split(':').length === 2 && !isNaN(+splitmsg[2].split(':')[1])) {
                   this.connList[splitmsg[3] as any] = new ConnContainer(this.newConn(pclient, { username: pclient.username, host: splitmsg[2].split(':')[0], port: +splitmsg[2].split(':')[1] }, false, ['keep_alive', 'chat']), splitmsg[4]);
+                  this.sendMessage(pclient, `Connection '${splitmsg[3]}' has been created`);
                 } else {
-                  this.sendMessage(pclient, 'no5');
+                  this.sendMessage(pclient, 'wrong use of ,conn new', { suggestcommand: ',help' });
                 }
                 break;
-              case splitmsg[1].toLowerCase() === 'list':
-                console.log('NOOOOOO');
+              case splitmsg[1] === 'list':
+                this.sendMessage(pclient, `here is a list of all Connections:`);
+                for (const key in this.connList) {
+                  if (Object.prototype.hasOwnProperty.call(this.connList, key)) {
+                    this.sendMessage(pclient, `${key}`);
+                  }
+                }
                 break;
-              case splitmsg[1].toLowerCase() === 'change':
+              case splitmsg[1] === 'change':
+                if (splitmsg.length === 6 && this.connList[splitmsg[2] as any]?.verifyPassword(splitmsg[3])) {
+                  if (splitmsg[2] !== splitmsg[4]) {
+                    this.connList[splitmsg[4] as any] = this.connList[splitmsg[2] as any];
+                    delete this.connList[splitmsg[2] as any];
+                  }
+                  if (splitmsg[3] !== splitmsg[5]) {
+                    this.connList[splitmsg[4] as any].changePassword(splitmsg[5]);
+                  }
+                }
                 break;
-              case splitmsg[1].toLowerCase() === 'delete':
+              case splitmsg[1] === 'delete':
+                if (splitmsg.length === 4 && this.connList[splitmsg[2] as any]?.verifyPassword(splitmsg[3])) {
+                  this.connList[splitmsg[2] as any].connection.disconnect();
+                  delete this.connList[splitmsg[2] as any];
+                }
                 break;
-              case splitmsg[1].toLowerCase() === 'restart':
+              case splitmsg[1] === 'restart':
                 break;
-              case splitmsg[1].toLowerCase() === 'option':
+              case splitmsg[1] === 'option':
                 switch (splitmsg.length === 3) {
                   case false:
                     this.sendMessage(pclient, 'no6');
-                    //this.wrongCommand(pclient, `wrong ,conn usage`, ',conn option <option>');
                     break;
-                  case splitmsg[2].toLowerCase() === 'reconnect':
+                  case splitmsg[2] === 'reconnect':
                     break;
-
-                  case splitmsg[2].toLowerCase() === '2b2tnotification':
+                  case splitmsg[2] === '2b2tnotification':
                     break;
                   case true:
                     this.sendMessage(pclient, 'no7');
-                    //this.wrongCommand(pclient, `,conn has the options [reconnect,2b2tnotification], "${splitmsg[2].toLowerCase()}" is not one of them`, ',conn option <option>');
                     break;
                 }
                 break;
               case true:
                 this.sendMessage(pclient, 'no8');
-                //this.wrongCommand(pclient, `,conn has the options [new,list,change,delete,restart,option], "${splitmsg[1].toLowerCase()}" is not one of them.`, ',conn <option>');
                 break;
             }
             break;
-          case splitmsg[0].toLowerCase() === ',this':
+          case splitmsg[0] === ',this':
             switch (splitmsg.length > 1) {
               case false:
                 this.sendMessage(pclient, 'no9');
-                //this.wrongCommand(pclient, "wrong amount of parameters specified for ',this'", ',help');
                 break;
-              case splitmsg[1].toLowerCase() === 'change':
+              case splitmsg[1] === 'change':
                 break;
-              case splitmsg[1].toLowerCase() === 'delete':
+              case splitmsg[1] === 'delete':
                 break;
-              case splitmsg[1].toLowerCase() === 'restart':
+              case splitmsg[1] === 'restart':
                 break;
               case true:
                 this.sendMessage(pclient, 'no10');
-                //this.wrongCommand(pclient, `,this hat the options [change,delete,restart], "${splitmsg[1].toLowerCase()}" is not one of them.`);
                 break;
             }
             break;
-          case splitmsg[0].toLowerCase() === ',shutdown':
+          case splitmsg[0] === ',shutdown':
             break;
           case true:
-            this.sendMessage(pclient, 'no11');
-            //this.wrongCommand(pclient, `${splitmsg[0].toLowerCase()} is not a valid mcproxy command`, ',help');}
+            this.sendMessage(pclient, msg, { sender: pclient.username });
             break;
         }
       }
     });
-  }
-  private wrongCommand(pclient: mc.Client, s: string, cmd?: string) {
-    this.sendMessage(pclient, s, 'mcproxy', cmd);
-    console.log(s, 'mcproxy', cmd);
   }
   newConn(pclient: mc.Client, clientOptions: mc.ClientOptions, instantConnect: boolean, excludedPacketNames?: string[]) {
     const connection: conn.Conn = new conn.Conn(clientOptions, excludedPacketNames);
@@ -143,10 +160,13 @@ export class ProxyServer extends mc.Server {
     }
     return connection;
   }
-  sendMessage(pclient: mc.Client, message: string, sender?: string, suggestcommand?: string) {
+  sendMessage(pclient: mc.Client, message: string, extra?: { suggestcommand?: string; sender?: string }) {
     pclient.write('chat', {
-      message: `{"translate":"chat.type.text","with":[{"insertion":"mcproxy","clickEvent":{"action":"suggest_command","value":"${suggestcommand}"},"hoverEvent":{"action":"show_entity","value":{"text":"{name:\\"Rob9315\\",id:\\"the creator\\"}"}},"text":"${sender}"},"${message}"]}`,
+      message: `{"translate":"chat.type.text","with":[{"insertion":"mcproxy","clickEvent":{"action":"suggest_command","value":"${
+        extra?.suggestcommand || ''
+      }"},"hoverEvent":{"action":"show_entity","value":{"text":"{name:\\"Rob9315\\",id:\\"the creator\\"}"}},"text":"${extra?.sender || 'mcproxy'}"},"${message}"]}`,
       position: 0,
     });
+    console.log(`${extra?.sender || 'mcproxy'}>${message}`);
   }
 }

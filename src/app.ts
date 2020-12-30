@@ -4,6 +4,6 @@ let test: mcproxy.ProxyServer = new mcproxy.ProxyServer({
   host: 'localhost',
   port: 25566,
 });
-test.server.on('login', () => {
-  console.log('test');
+test.server.on('login', (pclient) => {
+  console.log(`${pclient.username} logged onto the proxyServer`);
 });

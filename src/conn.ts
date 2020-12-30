@@ -1,5 +1,5 @@
-import mineflayer from "mineflayer";
-import mc from "minecraft-protocol";
+import mineflayer from 'mineflayer';
+import mc from 'minecraft-protocol';
 
 interface Packet {
   data: any;
@@ -19,24 +19,20 @@ export class Conn {
     this.bot = mineflayer.createBot(botOptions);
     this.write = this.bot._client.write.bind(this.bot._client);
     this.metadata = [];
-    this.excludedPacketNames = relayExcludedPacketNames || ["keep_alive"];
-    this.bot._client.on("packet", (data, packetMeta) => {
+    this.excludedPacketNames = relayExcludedPacketNames || ['keep_alive'];
+    this.bot._client.on('packet', (data, packetMeta) => {
       if (this.pclient) {
         try {
           this.pclient.write(packetMeta.name, data);
         } catch (error) {
-          console.log("there was a write error but it was catched, probably because the pclient disconnected");
+          console.log('there was a write error but it was catched, probably because the pclient disconnected');
         }
       }
     });
 
     //* entity metadata tracking
-    this.bot._client.on("packet", (data, packetMeta) => {
-      if (
-        Object.prototype.hasOwnProperty.call(data, "metadata") &&
-        Object.prototype.hasOwnProperty.call(data, "entityId") &&
-        this.bot.entities[data.entityId]
-      ) {
+    this.bot._client.on('packet', (data, packetMeta) => {
+      if (Object.prototype.hasOwnProperty.call(data, 'metadata') && Object.prototype.hasOwnProperty.call(data, 'entityId') && this.bot.entities[data.entityId]) {
         (this.bot.entities[data.entityId] as any).rawMetadata = data.metadata;
       }
     });
@@ -54,10 +50,10 @@ export class Conn {
 
     //* login
     packets.push({
-      name: "respawn",
+      name: 'respawn',
       data: {
         entityId: (this.bot.entity as any).id,
-        gameMode: this.bot.game.gameMode,
+        gamemode: this.bot.game.gameMode,
         dimension: this.bot.game.dimension,
         difficulty: this.bot.game.difficulty,
         maxPlayers: this.bot.game.maxPlayers,
@@ -69,7 +65,7 @@ export class Conn {
     //* game_state_change
     //* sets the gamemode
     packets.push({
-      name: "game_state_change",
+      name: 'game_state_change',
       data: {
         reason: 3,
         gameMode: this.bot.player.gamemode,
@@ -79,7 +75,7 @@ export class Conn {
     //* player_info (personal)
     //* the players player_info packet
     packets.push({
-      name: "player_info",
+      name: 'player_info',
       data: {
         action: 0,
         data: [
@@ -101,7 +97,7 @@ export class Conn {
         const player = this.bot.players[name];
         if (player.uuid != this.bot.player.uuid) {
           packets.push({
-            name: "player_info",
+            name: 'player_info',
             data: {
               action: 0,
               data: [
@@ -128,7 +124,7 @@ export class Conn {
 
           if (player.entity) {
             packets.push({
-              name: "named_entity_spawn",
+              name: 'named_entity_spawn',
               data: {
                 entityId: (player.entity as any).id,
                 playerUUID: player.uuid,
@@ -164,7 +160,7 @@ export class Conn {
       if (Object.prototype.hasOwnProperty.call(columnArray, index)) {
         const { chunkX, chunkZ, column } = columnArray[index];
         packets.push({
-          name: "map_chunk",
+          name: 'map_chunk',
           data: {
             x: chunkX,
             z: chunkZ,
@@ -179,7 +175,7 @@ export class Conn {
 
     //* position
     packets.push({
-      name: "position",
+      name: 'position',
       data: {
         x: this.bot.entity.position.x,
         y: this.bot.entity.position.y,
@@ -194,9 +190,9 @@ export class Conn {
       if (Object.prototype.hasOwnProperty.call(this.bot.entities, index)) {
         const entity = this.bot.entities[index];
         switch (entity.type) {
-          case "orb":
+          case 'orb':
             packets.push({
-              name: "spawn_entity_experience_orb",
+              name: 'spawn_entity_experience_orb',
               data: {
                 entityId: ((entity as unknown) as any).id,
                 x: entity.position.x,
@@ -207,15 +203,15 @@ export class Conn {
             });
             break;
 
-          case "player":
+          case 'player':
             {
               //* handled with the player_info packets
             }
             break;
 
-          case "mob":
+          case 'mob':
             packets.push({
-              name: "spawn_entity_living",
+              name: 'spawn_entity_living',
               data: {
                 entityId: ((entity as unknown) as any).id,
                 entityUUID: ((entity as unknown) as any).uuid,
@@ -235,7 +231,7 @@ export class Conn {
 
             entity.equipment.forEach((item, index) => {
               packets.push({
-                name: "entity_equipment",
+                name: 'entity_equipment',
                 data: {
                   entityId: (entity as any).id,
                   slot: index,
@@ -246,13 +242,13 @@ export class Conn {
             break;
 
           //TODO add global
-          case "global":
+          case 'global':
             console.log(entity.type, entity);
             break;
 
-          case "object":
+          case 'object':
             packets.push({
-              name: "spawn_entity",
+              name: 'spawn_entity',
               data: {
                 entityId: (entity as any).id,
                 objectUUID: (entity as any).uuid,
@@ -270,7 +266,7 @@ export class Conn {
             });
             if ((entity as any).rawMetadata) {
               packets.push({
-                name: "entity_metadata",
+                name: 'entity_metadata',
                 data: {
                   entityId: (entity as any).id,
                   metadata: (entity as any).rawMetadata,
@@ -280,7 +276,7 @@ export class Conn {
             break;
 
           //TODO add other?
-          case "other":
+          case 'other':
             // console.log(entity.type, entity);
             break;
         }
@@ -311,7 +307,7 @@ export class Conn {
 
     if (items.length > 0) {
       packets.push({
-        name: "window_items",
+        name: 'window_items',
         data: {
           windowId: 0,
           items: items,
@@ -321,7 +317,7 @@ export class Conn {
 
     if (this.bot.quickBarSlot) {
       packets.push({
-        name: "held_item_slot",
+        name: 'held_item_slot',
         data: {
           slot: this.bot.quickBarSlot,
         },
@@ -329,7 +325,7 @@ export class Conn {
     }
 
     packets.push({
-      name: "spawn_position",
+      name: 'spawn_position',
       data: {
         location: this.bot.spawnPoint,
       },
@@ -338,37 +334,37 @@ export class Conn {
     return packets;
   }
   sendLoginPacket(pclient: mc.Client): void {
-    pclient.write("login", {
+    pclient.write('login', {
       entityId: 9001,
-      levelType: "default",
+      levelType: 'default',
     });
   }
   link(pclient: mc.Client): void {
     this.pclient = pclient;
     this.bot._client.write = this.writeIf.bind(this);
-    this.pclient.on("packet", (data, packetMeta) => {
+    this.pclient.on('packet', (data, packetMeta) => {
       if (!this.excludedPacketNames.includes(packetMeta.name)) {
         this.write(packetMeta.name, data);
       }
-      if (packetMeta.name.includes("position")) {
+      if (packetMeta.name.includes('position')) {
         this.bot.entity.position.x = data.x;
         this.bot.entity.position.y = data.y;
         this.bot.entity.position.z = data.z;
       }
-      if (packetMeta.name.includes("look")) {
+      if (packetMeta.name.includes('look')) {
         this.bot.entity.yaw = data.yaw;
         this.bot.entity.pitch = data.pitch;
       }
-      if (packetMeta.name == "held_item_slot") {
+      if (packetMeta.name == 'held_item_slot') {
         this.bot.quickBarSlot = data.slotId;
       }
     });
-    this.pclient.on("end", (reason) => {
-      console.log("pclient ended because of reason:", reason);
+    this.pclient.on('end', (reason) => {
+      console.log('pclient ended because of reason:', reason);
       this.unlink();
     });
-    this.pclient.on("error", (error) => {
-      console.log("pclient threw an error, maybe just a disconnection?");
+    this.pclient.on('error', (error) => {
+      //console.log('pclient disconnected because' + error);
       this.unlink();
     });
   }
@@ -380,8 +376,12 @@ export class Conn {
     }
   }
   writeIf(name: string, data: any): void {
-    if (["keep_alive"].includes(name)) {
+    if (['keep_alive'].includes(name)) {
       this.write(name, data);
     }
+  }
+  disconnect() {
+    this.bot._client.end('fuckyouigo');
+    this.unlink();
   }
 }

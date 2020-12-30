@@ -9,14 +9,17 @@ declare class ConnContainer {
     changePassword(password: string): void;
     verifyPassword(password: string): boolean;
 }
-export declare class ProxyServer extends mc.Server {
+export declare class ProxyServer {
     connList: ConnContainer[];
+    userList: conn.Conn[];
     server: mc.Server;
     requireAdminPassword: boolean;
     constructor(options: proxyServerOptions, requireAdminPassword?: boolean);
     handleUser(pclient: mc.Client): void;
-    private wrongCommand;
     newConn(pclient: mc.Client, clientOptions: mc.ClientOptions, instantConnect: boolean, excludedPacketNames?: string[]): conn.Conn;
-    sendMessage(pclient: mc.Client, message: string, sender?: string, suggestcommand?: string): void;
+    sendMessage(pclient: mc.Client, message: string, extra?: {
+        suggestcommand?: string;
+        sender?: string;
+    }): void;
 }
 export {};
