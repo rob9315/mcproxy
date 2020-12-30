@@ -5,8 +5,9 @@
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
-    "start": "npm run build && node dist/app.js",
+    "start": "node dist/app.js",
     "build": "tsc",
+    "postinstall": "npm run build",
     "downloadServer": "downloadMinecraft 1.12.2 ./server/server.jar server",
     "runServer": "cd server && java -jar server.jar nogui"
   },

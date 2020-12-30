@@ -28,12 +28,25 @@ export class ProxyServer {
     this.userList = [];
     this.requireAdminPassword = requireAdminPassword || false;
     this.server = mc.createServer(options);
+    // this.server.on('connection', (pclient) => {
+    //   let wr = this.server.clients[0].write.bind(this.server.clients[0]);
+    //   this.server.clients[].write = function (name: string, params: any) {
+    //     console.log('s>c>', name, params);
+    //     wr(name, params);
+    //   }.bind(this.server.clients[0]);
+    //   pclient.on('packet', (data, meta) => {
+    //     console.log('c>s>', meta.name, data);
+    //   });
+    // });
     this.server.on('login', (pclient) => {
       this.handleUser(pclient);
     });
     console.log('proxyServer UP');
   }
   handleUser(pclient: mc.Client) {
+    // console.log(pclient);
+    // console.log(pclient.profile);
+    // console.log(pclient.session);
     pclient.write('login', { entityId: 9001, levelType: 'default' });
     pclient.write('position', { x: 0, y: 0, z: 0 });
     this.sendMessage(pclient, 'welcome to mcproxy, a project by Rob9315', { suggestcommand: ',connect <connName> <connPassword>' });
@@ -167,6 +180,6 @@ export class ProxyServer {
       }"},"hoverEvent":{"action":"show_entity","value":{"text":"{name:\\"Rob9315\\",id:\\"the creator\\"}"}},"text":"${extra?.sender || 'mcproxy'}"},"${message}"]}`,
       position: 0,
     });
-    console.log(`${extra?.sender || 'mcproxy'}>${message}`);
+    // console.log(`${extra?.sender || 'mcproxy'}>${message}`);
   }
 }

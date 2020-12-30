@@ -25,7 +25,7 @@ export class Conn {
         try {
           this.pclient.write(packetMeta.name, data);
         } catch (error) {
-          console.log('there was a write error but it was catched, probably because the pclient disconnected');
+          console.log('pclient disconnected');
         }
       }
     });

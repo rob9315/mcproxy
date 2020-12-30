@@ -1,5 +1,6 @@
 node_modules/
 package-lock.json
 server/
-versions
+versions/
 launcher_profiles.json
+dist/
