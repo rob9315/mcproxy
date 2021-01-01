@@ -10,7 +10,7 @@ interface Packet {
 export class Conn {
   bot: mineflayer.Bot;
   pclient?: mc.Client;
-  events: { event: string; listener: (...arg0: any) => void }[];
+  private events: { event: string; listener: (...arg0: any) => void }[];
   private metadata: {
     [entityId: number]: { key: number; type: number; value: any };
   };
@@ -378,7 +378,7 @@ export class Conn {
     this.pclient = pclient;
     this.bot._client.write = this.writeIf.bind(this);
     this.events.forEach((event) => {
-      this.bot.on(event.event as any, event.listener);
+      (this.pclient as any).on(event.event as any, event.listener);
     });
   }
   unlink(): void {
