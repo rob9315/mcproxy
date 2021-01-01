@@ -1,7 +1,27 @@
 import mineflayer from 'mineflayer';
 import mc from 'minecraft-protocol';
 
-interface Packet {
+export const dimension: Record<string, number> = {
+  'minecraft:the_end': 1,
+  'minecraft:overworld': 0,
+  'minecraft:nether': -1,
+};
+
+export const gamemode: Record<string, number> = {
+  survival: 0,
+  creative: 1,
+  adventure: 2,
+  spectator: 3,
+};
+
+export const difficulty: Record<string, number> = {
+  peaceful: 0,
+  easy: 1,
+  normal: 2,
+  hard: 3,
+};
+
+export interface Packet {
   data: any;
   name: string;
   state?: string;
@@ -11,14 +31,16 @@ export class Conn {
   bot: mineflayer.Bot;
   pclient?: mc.Client;
   private events: { event: string; listener: (...arg0: any) => void }[];
-  private metadata: {
-    [entityId: number]: { key: number; type: number; value: any };
-  };
+  private metadata: { [entityId: number]: { key: number; type: number; value: any } };
   excludedPacketNames: string[];
   write = (name: string, data: any): void => {};
+  writeRaw = (buffer: any): void => {};
+  writeChannel = (channel: any, params: any): void => {};
   constructor(botOptions: mineflayer.BotOptions, relayExcludedPacketNames?: string[]) {
     this.bot = mineflayer.createBot(botOptions);
     this.write = this.bot._client.write.bind(this.bot._client);
+    this.writeRaw = this.bot._client.writeRaw.bind(this.bot._client);
+    this.writeChannel = this.bot._client.writeChannel.bind(this.bot._client);
     this.metadata = [];
     this.excludedPacketNames = relayExcludedPacketNames || ['keep_alive'];
     this.bot._client.on('packet', (data, packetMeta) => {
@@ -42,10 +64,10 @@ export class Conn {
             this.bot.entity.position.y = data.y;
             this.bot.entity.position.z = data.z;
           }
-          if (packetMeta.name.includes('look')) {
-            this.bot.entity.yaw = data.yaw;
-            this.bot.entity.pitch = data.pitch;
-          }
+          // if (packetMeta.name.includes('look')) {
+          //   this.bot.entity.yaw = data.yaw;
+          //   this.bot.entity.pitch = data.pitch;
+          // }
           if (packetMeta.name == 'held_item_slot') {
             this.bot.quickBarSlot = data.slotId;
           }
@@ -66,7 +88,7 @@ export class Conn {
       },
     ];
     //* entity metadata tracking
-    this.bot._client.on('packet', (data, packetMeta) => {
+    this.bot._client.on('packet', (data) => {
       if (Object.prototype.hasOwnProperty.call(data, 'metadata') && Object.prototype.hasOwnProperty.call(data, 'entityId') && this.bot.entities[data.entityId]) {
         (this.bot.entities[data.entityId] as any).rawMetadata = data.metadata;
       }
@@ -85,15 +107,51 @@ export class Conn {
 
     //* login
     packets.push({
-      name: 'respawn',
+      name: 'login',
       data: {
         entityId: (this.bot.entity as any).id,
-        gamemode: this.bot.game.gameMode,
-        dimension: this.bot.game.dimension,
-        difficulty: this.bot.game.difficulty,
+        gamemode: gamemode[this.bot.game.gameMode],
+        dimension: dimension[this.bot.game.dimension],
+        difficulty: difficulty[this.bot.game.difficulty],
         maxPlayers: this.bot.game.maxPlayers,
         levelType: this.bot.game.levelType,
         reducedDebugInfo: false,
+      },
+    });
+
+    packets.push({
+      name: 'spawn_position',
+      data: {
+        location: this.bot.entity.position,
+      },
+    });
+
+    packets.push({
+      name: 'respawn',
+      data: {
+        gamemode: gamemode[this.bot.game.gameMode],
+        dimension: dimension[this.bot.game.dimension],
+        difficulty: difficulty[this.bot.game.difficulty],
+        levelType: this.bot.game.levelType,
+      },
+    });
+
+    //* position
+    packets.push({
+      name: 'position',
+      data: {
+        x: this.bot.entity.position.x,
+        y: this.bot.entity.position.y,
+        z: this.bot.entity.position.z,
+        yaw: this.bot.entity.yaw,
+        pitch: this.bot.entity.pitch,
+      },
+    });
+
+    packets.push({
+      name: 'spawn_position',
+      data: {
+        location: this.bot.spawnPoint,
       },
     });
 
@@ -104,6 +162,15 @@ export class Conn {
       data: {
         reason: 3,
         gameMode: this.bot.player.gamemode,
+      },
+    });
+
+    packets.push({
+      name: 'update_health',
+      data: {
+        health: this.bot.health,
+        food: this.bot.food,
+        foodSaturation: this.bot.foodSaturation,
       },
     });
 
@@ -207,18 +274,6 @@ export class Conn {
         });
       }
     }
-
-    //* position
-    packets.push({
-      name: 'position',
-      data: {
-        x: this.bot.entity.position.x,
-        y: this.bot.entity.position.y,
-        z: this.bot.entity.position.z,
-        yaw: this.bot.entity.yaw,
-        pitch: this.bot.entity.pitch,
-      },
-    });
 
     //* entity stuff
     for (const index in this.bot.entities) {
@@ -359,24 +414,20 @@ export class Conn {
       });
     }
 
-    packets.push({
-      name: 'spawn_position',
-      data: {
-        location: this.bot.spawnPoint,
-      },
-    });
-
     return packets;
   }
   sendLoginPacket(pclient: mc.Client): void {
     pclient.write('login', {
       entityId: 9001,
       levelType: 'default',
+      dimension: 1,
     });
   }
   link(pclient: mc.Client): void {
     this.pclient = pclient;
     this.bot._client.write = this.writeIf.bind(this);
+    this.bot._client.writeRaw = (buffer: any) => {};
+    this.bot._client.writeChannel = (channel: any, params: any) => {};
     this.events.forEach((event) => {
       (this.pclient as any).on(event.event as any, event.listener);
     });
@@ -384,6 +435,8 @@ export class Conn {
   unlink(): void {
     if (this.pclient) {
       this.bot._client.write = this.write.bind(this.bot._client);
+      this.bot._client.writeRaw = this.writeRaw.bind(this.bot._client);
+      this.bot._client.writeChannel = this.writeChannel.bind(this.bot._client);
       this.events.forEach((event) => {
         this.pclient?.removeListener(event.event, event.listener);
       });

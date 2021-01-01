@@ -35,7 +35,7 @@ export class ProxyServer {
     console.log('proxyServer UP');
   }
   handleUser(pclient: mc.Client) {
-    pclient.write('login', { entityId: 9001, levelType: 'default', dimension: -1 });
+    Conn.prototype.sendLoginPacket(pclient);
     pclient.write('position', { x: 0, y: 0, z: 0 });
     this.sendMessage(pclient, 'welcome to mcproxy, a project by Rob9315', { suggestcommand: ',connect <connName> <connPassword>' });
     this.sendMessage(pclient, `to see all commands, type ',help'`);
@@ -117,8 +117,10 @@ export class ProxyServer {
                 this.sendMessage(pclient, 'no9');
                 break;
               case splitmsg[1] === 'change':
+                if (this.connList[splitmsg[2] as any]?.verifyPassword(splitmsg[3])) this.changeConn(splitmsg[2], splitmsg[4], splitmsg[5]);
                 break;
               case splitmsg[1] === 'delete':
+                if (this.connList[splitmsg[2] as any]?.verifyPassword(splitmsg[3])) this.deleteConn(splitmsg[2]);
                 break;
               case splitmsg[1] === 'restart':
                 break;
