@@ -7,7 +7,7 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Launch Program",
+      "name": "compile and launch",
       "preLaunchTask": "npm: build",
       "skipFiles": [
         "<node_internals>/**"
@@ -16,6 +16,18 @@
       "outFiles": [
         "${workspaceFolder}/dist/**/*.js"
       ]
+    },{
+      "name": "Debug Launch",
+      "request": "launch",
+      "runtimeArgs": [
+        "run-script",
+        "debug"
+      ],
+      "runtimeExecutable": "npm",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "type": "pwa-node"
     }
   ]
 }
