@@ -29,11 +29,11 @@ export class ProxyServer {
     this.requireAdminPassword = requireAdminPassword || false;
     this.server = mc.createServer(options);
     // this.server.on('connection', (pclient) => {
-    //   let wr = this.server.clients[0].write.bind(this.server.clients[0]);
-    //   this.server.clients[].write = function (name: string, params: any) {
-    //     console.log('s>c>', name, params);
-    //     wr(name, params);
-    //   }.bind(this.server.clients[0]);
+    // let wr = this.server.clients[0].write.bind(this.server.clients[0]);
+    // this.server.clients[].write = function (name: string, params: any) {
+    //   console.log('s>c>', name, params);
+    //   wr(name, params);
+    // }.bind(this.server.clients[0]);
     //   pclient.on('packet', (data, meta) => {
     //     console.log('c>s>', meta.name, data);
     //   });
@@ -47,7 +47,7 @@ export class ProxyServer {
     // console.log(pclient);
     // console.log(pclient.profile);
     // console.log(pclient.session);
-    pclient.write('login', { entityId: 9001, levelType: 'default' });
+    pclient.write('login', { entityId: 9001, levelType: 'default', dimension: -1 });
     pclient.write('position', { x: 0, y: 0, z: 0 });
     this.sendMessage(pclient, 'welcome to mcproxy, a project by Rob9315', { suggestcommand: ',connect <connName> <connPassword>' });
     this.sendMessage(pclient, `to see all commands, type ',help'`);
@@ -155,6 +155,12 @@ export class ProxyServer {
             }
             break;
           case splitmsg[0] === ',shutdown':
+            break;
+          case splitmsg[0] === ',disconnect':
+            this.userList[pclient as any].unlink();
+            delete this.userList[pclient as any];
+            pclient.write('respawn', { entityId: 9001, levelType: 'default', dimension: -1 });
+            pclient.write('position', { x: 0, y: 0, z: 0 });
             break;
           case true:
             this.sendMessage(pclient, msg, { sender: pclient.username });

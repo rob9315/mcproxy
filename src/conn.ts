@@ -10,6 +10,7 @@ interface Packet {
 export class Conn {
   bot: mineflayer.Bot;
   pclient?: mc.Client;
+  events: { event: string; listener: (...arg0: any) => void }[];
   private metadata: {
     [entityId: number]: { key: number; type: number; value: any };
   };
@@ -29,7 +30,41 @@ export class Conn {
         }
       }
     });
-
+    this.events = [
+      {
+        event: 'packet',
+        listener: (data, packetMeta) => {
+          if (!this.excludedPacketNames.includes(packetMeta.name)) {
+            this.write(packetMeta.name, data);
+          }
+          if (packetMeta.name.includes('position')) {
+            this.bot.entity.position.x = data.x;
+            this.bot.entity.position.y = data.y;
+            this.bot.entity.position.z = data.z;
+          }
+          if (packetMeta.name.includes('look')) {
+            this.bot.entity.yaw = data.yaw;
+            this.bot.entity.pitch = data.pitch;
+          }
+          if (packetMeta.name == 'held_item_slot') {
+            this.bot.quickBarSlot = data.slotId;
+          }
+        },
+      },
+      {
+        event: 'end',
+        listener: (reason) => {
+          console.log('pclient ended because of reason:', reason);
+          this.unlink();
+        },
+      },
+      {
+        event: 'error',
+        listener: () => {
+          this.unlink();
+        },
+      },
+    ];
     //* entity metadata tracking
     this.bot._client.on('packet', (data, packetMeta) => {
       if (Object.prototype.hasOwnProperty.call(data, 'metadata') && Object.prototype.hasOwnProperty.call(data, 'entityId') && this.bot.entities[data.entityId]) {
@@ -342,36 +377,16 @@ export class Conn {
   link(pclient: mc.Client): void {
     this.pclient = pclient;
     this.bot._client.write = this.writeIf.bind(this);
-    this.pclient.on('packet', (data, packetMeta) => {
-      if (!this.excludedPacketNames.includes(packetMeta.name)) {
-        this.write(packetMeta.name, data);
-      }
-      if (packetMeta.name.includes('position')) {
-        this.bot.entity.position.x = data.x;
-        this.bot.entity.position.y = data.y;
-        this.bot.entity.position.z = data.z;
-      }
-      if (packetMeta.name.includes('look')) {
-        this.bot.entity.yaw = data.yaw;
-        this.bot.entity.pitch = data.pitch;
-      }
-      if (packetMeta.name == 'held_item_slot') {
-        this.bot.quickBarSlot = data.slotId;
-      }
-    });
-    this.pclient.on('end', (reason) => {
-      console.log('pclient ended because of reason:', reason);
-      this.unlink();
-    });
-    this.pclient.on('error', (error) => {
-      //console.log('pclient disconnected because' + error);
-      this.unlink();
+    this.events.forEach((event) => {
+      this.bot.on(event.event as any, event.listener);
     });
   }
   unlink(): void {
     if (this.pclient) {
       this.bot._client.write = this.write.bind(this.bot._client);
-      this.pclient.removeAllListeners();
+      this.events.forEach((event) => {
+        this.pclient?.removeListener(event.event, event.listener);
+      });
       this.pclient = undefined;
     }
   }
