@@ -117,8 +117,10 @@ export class ProxyServer {
                 this.sendMessage(pclient, 'no9');
                 break;
               case splitmsg[1] === 'change':
+                if (this.connList[splitmsg[2] as any]?.verifyPassword(splitmsg[3])) this.changeConn(splitmsg[2], splitmsg[4], splitmsg[5]);
                 break;
               case splitmsg[1] === 'delete':
+                if (this.connList[splitmsg[2] as any]?.verifyPassword(splitmsg[3])) this.deleteConn(splitmsg[2]);
                 break;
               case splitmsg[1] === 'restart':
                 break;
