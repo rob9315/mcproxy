@@ -27,6 +27,7 @@
     "ts-node": "^9.1.1"
   },
   "dependencies": {
+    "@types/node": "^14.14.30",
     "minecraft-data": "^2.69.1",
     "minecraft-protocol": "^1.17.0",
     "mineflayer": "^2.32.0",
