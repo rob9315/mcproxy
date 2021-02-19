@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "a minecraft proxy with mineflayer integration",
   "main": "dist/index.js",
-  "type": "module",
   "scripts": {
     "debug": "node --loader ts-node/esm src/app.ts",
     "start": "node dist/app.js",
