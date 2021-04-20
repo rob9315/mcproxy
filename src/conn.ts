@@ -27,6 +27,10 @@ export interface Packet {
   state?: string;
 }
 
+interface connOptions {
+  consolePrints?: boolean;
+}
+
 export class Conn {
   bot: mineflayer.Bot;
   pclient?: mc.Client;
@@ -36,19 +40,21 @@ export class Conn {
   write = (name: string, data: any): void => {};
   writeRaw = (buffer: any): void => {};
   writeChannel = (channel: any, params: any): void => {};
-  constructor(botOptions: mineflayer.BotOptions, relayExcludedPacketNames?: string[]) {
+  consolePrints: boolean;
+  constructor(botOptions: mineflayer.BotOptions, relayExcludedPacketNames?: string[], options?: connOptions) {
     this.bot = mineflayer.createBot(botOptions);
     this.write = this.bot._client.write.bind(this.bot._client);
     this.writeRaw = this.bot._client.writeRaw.bind(this.bot._client);
     this.writeChannel = this.bot._client.writeChannel.bind(this.bot._client);
     this.metadata = [];
     this.excludedPacketNames = relayExcludedPacketNames || ['keep_alive'];
+    this.consolePrints = options?.consolePrints ?? false;
     this.bot._client.on('packet', (data, packetMeta) => {
       if (this.pclient) {
         try {
           this.pclient.write(packetMeta.name, data);
         } catch (error) {
-          console.log('pclient disconnected');
+          this.log('pclient disconnected');
         }
       }
     });
@@ -76,7 +82,7 @@ export class Conn {
       {
         event: 'end',
         listener: (reason) => {
-          console.log('pclient ended because of reason:', reason);
+          this.log('pclient ended because of reason:', reason);
           this.unlink();
         },
       },
@@ -333,7 +339,7 @@ export class Conn {
 
           //TODO add global
           case 'global':
-            console.log(entity.type, entity);
+            this.log(entity.type, entity);
             break;
 
           case 'object':
@@ -451,5 +457,8 @@ export class Conn {
   disconnect() {
     this.bot._client.end('fuckyouigo');
     this.unlink();
+  }
+  log(...args: any[]) {
+    if(this.consolePrints) console.log(...args);
   }
 }
