@@ -48,7 +48,7 @@ export class Conn {
     this.writeChannel = this.bot._client.writeChannel.bind(this.bot._client);
     this.metadata = [];
     this.excludedPacketNames = relayExcludedPacketNames || ['keep_alive'];
-    this.consolePrints = options?.consolePrints ?? true;
+    this.consolePrints = options?.consolePrints ?? false;
     this.bot._client.on('packet', (data, packetMeta) => {
       if (this.pclient) {
         try {
