@@ -29,6 +29,7 @@ export interface Packet {
 
 interface connOptions {
   consolePrints?: boolean;
+  events?: { event: string; listener: (...arg0: any) => void }[];
 }
 
 export class Conn {
@@ -58,7 +59,7 @@ export class Conn {
         }
       }
     });
-    this.events = [
+    this.events = options?.events ?? [
       {
         event: 'packet',
         listener: (data, packetMeta) => {
@@ -459,6 +460,6 @@ export class Conn {
     this.unlink();
   }
   log(...args: any[]) {
-    if(this.consolePrints) console.log(...args);
+    if (this.consolePrints) console.log(...args);
   }
 }
