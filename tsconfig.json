@@ -1,19 +1,18 @@
 {
   "compilerOptions": {
-    "target": "esnext",
+    "target": "es6",
     "module": "commonjs",
     "sourceMap": true,
     "declaration": true,
+    "declarationMap": true,
     "strict": true,
+    "noImplicitAny": true,
     "resolveJsonModule": true,
     "moduleResolution": "node",
     "esModuleInterop": true,
-    "outDir": "dist"
-  },
-  "include": [
-    "src"
-  ],
-  "exclude": [
-    "dist", "node_modules"
-  ]
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "rootDir": "src/",
+    "outDir": "lib/",
+  }
 }

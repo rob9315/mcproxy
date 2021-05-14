@@ -1,109 +1,69 @@
 # mcproxy
 
-A wrapper for mineflayer able to generate packets for actual minecraft clients to connect to
-
-This project includes a working proxy server that manages the Proxy-Connections with its own ingame command set
+a minecraft proxy library powered by mineflayer that replicates data as well as possible from available information of mineflayer
 
 ## Contribution
 
-This Project is based on the [PrismarineJS project](https://prismarine.js.org/) and inspired by the [2bored2wait project](https://github.com/themoonisacheese/2bored2wait), but completely seperate, which is why it isn't a fork. If you want to contribute, the project is written in TypeScript and of course OpenSource so either tinker with it yourself or if you have ideas, [open an issue](https://github.com/Rob9315/mcproxy/issues/new)
-
-## ProxyServer Easy setup
-
-have the dependent program: nodejs (and npm)
-
-download the project with git
-
-```shell
-git clone github.com/Rob9315/mcproxy.git
-```
-
-or the raw zip
-
-then open a terminal in your folder and run
-
-```shell
-npm start
-```
-
-to start the proxy server.
-
-connect with your preferred minecraft client to
-
-```
-localhost:25566
-```
-
-and use the appropriate [commands](https://github.com/Rob9315/mcproxy/blob/master/COMMANDS.md) via the ingame chat
+This project was inspired by [2bored2wait](https://github.com/themoonisacheese/2bored2wait) and now serves as a dependency of it. This project relies heavily on the great work that the awesome people of the [PrismarineJS project](https://prismarine.js.org/) have done.
 
 ## API
 
-The API exposes two objects to other programs. One is the `Conn()` class to build your own proxy /proxy management system on top and the other is the `ProxyServer()` class to deploy this Proxy Server with your own configuration.
-
-### `Conn`
+This project provides the `Conn` class, which enables you to create a connection to a server and connect clients to the Conn instance. The connection will stay after you disconnect from the Conn instance.
 
 ```ts
-new Conn(botOptions, relayExcludedPacketNames?)
+// How to instanciate Conn:
+import { Conn } from "mcproxy";
+const conn = new Conn(botOptions: mineflayer.BotOptions, relayExcludedPacketNames?: string[], options: ConnOptions);
 ```
 
-you can instantiate the Conn to deploy a new Bot to connect to a server. it takes mineflayer's [botOptions](https://github.com/PrismarineJS/mineflayer/blob/master/docs/api.md#mineflayercreatebotoptions) and a list of packets to exclude sending, in the integrated ProxyServer this is the `chat` and the `keep_alive` packet. they are not sent to the server if received.
+### `Conn.bot`
 
-#### `.bot`
+`Conn.bot` is the mineflayer [Bot](https://github.com/PrismarineJS/mineflayer/blob/master/docs/api.md#bot) integrated into the library
 
-is the mineflayer [Bot](https://github.com/PrismarineJS/mineflayer/blob/master/docs/api.md#bot) integrated into the proxy
+### `Conn.pclient`
 
-#### `.pclient`
+This should not be overwritten, there is a method to change this property. It is the proxyClient that packets are being relayed to. To attach a client, use `Conn.link`.
 
-this should written to, as there is a method to change this attribute. it is the proxyClient that is being relayed every packet
+### `Conn.excludedPacketNames`
 
-#### `.excludedPacketNames`
+the array one can set at creation of the conn object, can be changed at runtime after being instanciated, (though shouldn't be).
 
-the array one can set at creation of the conn object, can be changed at runtime
-
-#### `.sendPackets()`
+### `Conn.generatePackets()`
 
 ```ts
-.sendPackets(pclient)
+Conn.generatePackets(): Packet[]
 ```
 
-this method generates packets to recreate the current gamestate and sends them to the proxyClient specified
+returns the generated packets for the current gamestate
 
-#### `.generatePackets()`
+### `Conn.sendPackets()`
 
 ```ts
-.generatePackets():Packet[]
+Conn.sendPackets(pclient)
 ```
 
-returns the generated packets of the current gamestate
+this method calls `Conn.generatePackets()` and sends the packets to the proxyClient specified
 
-#### `.link()`
+### `Conn.link()`
 
 ```ts
-.link(pclient)
+Conn.link(pclient)
 ```
 
-this method stops the internal bot from sending any packets to the server and starts relaying all packets to the proxyClient as well as relaying packets from the proxyClient.
+this method stops the internal bot from sending any packets to the server and starts relaying all packets to the proxyClient as well as sending the packets from the proxyClient to the server.
 
-#### `.unlink()`
+### `Conn.unlink()`
 
 ```ts
-.unlink(pclient)
+Conn.unlink(pclient)
 ```
 
-this method removes links by the `.link()` method and cleans up afterwards
+this method removes the proxyClient linked by the `.link()` method and cleans up afterwards
 
-#### `.writeIf()`
+### `Conn.writeIf()`
 
 ```ts
-.writeIf(name, data)
+Conn.writeIf(name, data)
 ```
 
-this is an internal method for filtering Packets, can be used outside but is mostly not necessary
-
-### `ProxyServer`
-
-```ts
-new ProxyServer(proxyServerOptions);
-```
-
-ProxyServer is the complete Proxy Management Server Class included with demo options in this repo. It is built on top on a normal minecraft-protocol [Server](https://github.com/PrismarineJS/node-minecraft-protocol/blob/master/docs/API.md#mcserverversioncustompackets) but takes the [serverOptions](https://github.com/PrismarineJS/node-minecraft-protocol/blob/master/docs/API.md#mccreateserveroptions) directly as constructor input. The ProxyServer works autonomously, methods are still exposed if required can be tinkered with but generally shouldn't.
+this is an internal method for filtering Packets, can be used outside but is mostly not necessary to use

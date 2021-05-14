@@ -1,35 +1,31 @@
 {
   "name": "mcproxy",
-  "version": "1.0.0",
-  "description": "a minecraft proxy with mineflayer integration",
-  "main": "dist/index.js",
+  "version": "1.1.0",
+  "description": "a minecraft proxy library powered by mineflayer",
+  "main": "lib/index.js",
   "scripts": {
-    "debug": "node --loader ts-node/esm src/app.ts",
-    "start": "node dist/app.js",
-    "build": "tsc",
-    "postinstall": "npm run build",
-    "downloadServer": "mkdir server && downloadMinecraft 1.12.2 ./server/server.jar server",
-    "runServer": "cd server && java -jar server.jar nogui"
+    "build": "npx tsc",
+    "postinstall": "npm run build"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Rob9315/mcproxy-conn.git"
+    "url": "git+https://github.com/rob9315/mcproxy.git"
   },
   "keywords": [
     "minecraft",
-    "proxy"
+    "proxy",
+    "library",
+    "mineflayer"
   ],
   "author": "Rob9315",
-  "license": "MIT",
+  "license": "GPL-3.0",
   "devDependencies": {
-    "minecraft-wrap": "^1.3.0",
-    "ts-node": "^9.1.1"
+    "@types/node": "^14.14.30",
+    "typescript": "^4.2.4"
   },
   "dependencies": {
-    "@types/node": "^14.14.30",
-    "minecraft-data": "^2.69.1",
-    "minecraft-protocol": "^1.17.0",
-    "mineflayer": "^2.32.0",
-    "typescript": "^4.0.3"
+    "minecraft-data": "^2.84.0",
+    "minecraft-protocol": "^1.25.0",
+    "mineflayer": "^3.6.0"
   }
 }
