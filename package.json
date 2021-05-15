@@ -1,10 +1,10 @@
 {
   "name": "mcproxy",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "a minecraft proxy library powered by mineflayer",
   "main": "lib/index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "npx tsc",
     "postinstall": "npm run build"
   },
   "repository": {

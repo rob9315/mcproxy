@@ -18,3 +18,7 @@
 
 * export connOptions
 * change how custom events are handled
+
+### 1.2.1
+
+* use npx tsc instead of tsc for installing
