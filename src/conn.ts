@@ -27,7 +27,7 @@ export interface Packet {
   state?: string;
 }
 
-interface connOptions {
+export interface connOptions {
   consolePrints?: boolean;
   events?: { event: string; listener: (...arg0: any) => void }[];
 }
@@ -59,7 +59,8 @@ export class Conn {
         }
       }
     });
-    this.events = options?.events ?? [
+
+    this.events = [
       {
         event: 'packet',
         listener: (data, packetMeta) => {
@@ -94,6 +95,7 @@ export class Conn {
         },
       },
     ];
+    if (options?.events) this.events = [...options?.events, ...this.events];
     //* entity metadata tracking
     this.bot._client.on('packet', (data) => {
       if (Object.prototype.hasOwnProperty.call(data, 'metadata') && Object.prototype.hasOwnProperty.call(data, 'entityId') && this.bot.entities[data.entityId]) {
@@ -291,7 +293,7 @@ export class Conn {
             packets.push({
               name: 'spawn_entity_experience_orb',
               data: {
-                entityId: ((entity as unknown) as any).id,
+                entityId: (entity as unknown as any).id,
                 x: entity.position.x,
                 y: entity.position.y,
                 z: entity.position.z,
@@ -310,8 +312,8 @@ export class Conn {
             packets.push({
               name: 'spawn_entity_living',
               data: {
-                entityId: ((entity as unknown) as any).id,
-                entityUUID: ((entity as unknown) as any).uuid,
+                entityId: (entity as unknown as any).id,
+                entityUUID: (entity as unknown as any).uuid,
                 type: entity.entityType,
                 x: entity.position.x,
                 y: entity.position.y,

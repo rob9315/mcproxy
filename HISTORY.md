@@ -13,3 +13,8 @@
 ### 1.1.1
 
 * hotfix for lib issue
+
+### 1.2.0
+
+* export connOptions
+* change how custom events are handled
