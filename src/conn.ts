@@ -458,7 +458,7 @@ export class Conn {
     }
   }
   disconnect() {
-    this.bot._client.end('fuckyouigo');
+    this.bot._client.end('conn: disconnect called');
     this.unlink();
   }
   log(...args: any[]) {
