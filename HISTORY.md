@@ -22,3 +22,7 @@
 ### 1.2.1
 
 * use npx tsc instead of tsc for installing
+
+### 1.2.2
+
+* fix typescript related install issues as a library

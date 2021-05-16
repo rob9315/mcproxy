@@ -1,6 +1,6 @@
 {
   "name": "mcproxy",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "a minecraft proxy library powered by mineflayer",
   "main": "lib/index.js",
   "scripts": {
@@ -19,11 +19,9 @@
   ],
   "author": "Rob9315",
   "license": "GPL-3.0",
-  "devDependencies": {
-    "typescript": "^4.2.4"
-  },
   "dependencies": {
     "@types/node": "^14.14.30",
+    "typescript": "^4.2.4",
     "minecraft-data": "^2.84.0",
     "minecraft-protocol": "^1.25.0",
     "mineflayer": "^3.6.0"
