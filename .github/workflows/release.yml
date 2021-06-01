@@ -23,7 +23,7 @@ jobs:
           name: ${{ github.actor }}
           email: ${{ github.actor }}@users.noreply.github.com
       - name: Bump version in package.json and add to CHANGELOG.md
-        run: npx standard-version --release-as ${{ github.event.inputs.version-type == 'beta' && 'patch' || github.event.inputs.version-type }}
+        run: npx standard-version --release-as ${{ github.event.inputs.version-type == 'beta' && 'patch --prerelease beta' || github.event.inputs.version-type }}
       - name: Push Tag to GitHub and Release new NPM version
         run: git push --follow-tags origin master && npm publish ${{ contains(github.event.inputs.version-type, 'beta') || '--tag beta' }}
         env:
