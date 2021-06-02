@@ -36,4 +36,4 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Push to GitHub
-        run: git push
+        run: git push --follow-tags
