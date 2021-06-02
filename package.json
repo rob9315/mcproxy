@@ -5,7 +5,7 @@
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
-    "build": "npx tsc",
+    "build": "npx -y tsc",
     "prepublish": "npm run build",
     "postinstall": "npm run build"
   },
