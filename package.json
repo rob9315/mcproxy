@@ -1,6 +1,6 @@
 {
   "name": "@rob9315/mcproxy",
-  "version": "0.0.4-beta.4",
+  "version": "0.0.4-beta.5",
   "description": "a minecraft proxy library powered by mineflayer",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
