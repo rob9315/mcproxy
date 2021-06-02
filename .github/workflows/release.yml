@@ -32,6 +32,6 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Push to GitHub
-        run: |
-          VERSION=$(node -pe "require('./package.json').version") |
-          git add . && git commit -m "Release $VERSION" && git push origin "$VERSION"
+        run: git add . && git commit -m "Release $VERSION" && git push origin "$VERSION"
+        env:
+          VERSION: $(node -pe "require('./package.json').version")
