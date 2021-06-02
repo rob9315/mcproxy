@@ -34,4 +34,4 @@ jobs:
       - name: Push to GitHub
         run: |
           export VERSION=$(node -pe "require('./package.json').version") &&
-          git add . && git commit -m "Release ${VERSION}" && git tag -a ${VERSION} && git push --follow-tags
+          git add . && git commit -m "Release ${VERSION}" && git tag -m "Release ${VERSION}" ${VERSION} && git push --follow-tags
