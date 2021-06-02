@@ -26,10 +26,9 @@ jobs:
           email: ${{ github.actor }}@users.noreply.github.com
       - name: Bump version in package.json and add to CHANGELOG.md
         run: npx standard-version --release-as ${{ github.event.inputs.version-type == 'beta' && 'patch --prerelease beta' || github.event.inputs.version-type }}
-      - run: yarn login
+      - name: Release new NPM version
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - name: Release new NPM version
         run: yarn publish --non-interactive --access public ${{ contains(github.event.inputs.version-type, 'beta') && '--tag beta' || '' }}
       - name: Push Tag to GitHub
         run: git push --follow-tags origin master
