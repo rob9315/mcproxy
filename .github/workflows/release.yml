@@ -27,13 +27,11 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           name: ${{ github.actor }}
           email: ${{ github.actor }}@users.noreply.github.com
-      - name: Bump Package Version
-        run: yarn version --${{ github.event.inputs.version-type }} --preid beta --no-git-tag-version
-      - name: Create Commit
-        run: git add . && git commit -m "Release $(node -pe "require('./package.json').version")"
       - name: Release new version to NPM
-        run: yarn publish --non-interactive --access public ${{ contains(github.event.inputs.version-type, 'pre') && '--tag beta' || '' }}
+        run: yarn publish --non-interactive --access public --${{ github.event.inputs.version-type }} --preid beta --no-git-tag-version ${{ contains(github.event.inputs.version-type, 'pre') && '--tag beta' || '' }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Push to GitHub
-        run: git push --follow-tags
+        run: |
+          VERSION=$(node -pe "require('./package.json').version") |
+          git add . && git commit -m "Release $VERSION" && git push origin "$VERSION"
