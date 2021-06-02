@@ -16,6 +16,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
+      - name: Install dependencies
+        run: yarn --dev
       - name: Configure git credentials
         uses: OleksiyRudenko/gha-git-credentials@v2
         with:
@@ -24,7 +26,9 @@ jobs:
           email: ${{ github.actor }}@users.noreply.github.com
       - name: Bump version in package.json and add to CHANGELOG.md
         run: npx standard-version --release-as ${{ github.event.inputs.version-type == 'beta' && 'patch --prerelease beta' || github.event.inputs.version-type }}
-      - name: Push Tag to GitHub and Release new NPM version
-        run: git push --follow-tags origin master && yarn publish ${{ contains(github.event.inputs.version-type, 'beta') && '--tag beta' || '' }}
+      - name: Release new NPM version
+        run: yarn publish --non-interactive --access public ${{ contains(github.event.inputs.version-type, 'beta') && '--tag beta' || '' }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Push Tag to GitHub
+        run: git push --follow-tags origin master
