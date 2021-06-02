@@ -25,6 +25,6 @@ jobs:
       - name: Bump version in package.json and add to CHANGELOG.md
         run: npx standard-version --release-as ${{ github.event.inputs.version-type == 'beta' && 'patch --prerelease beta' || github.event.inputs.version-type }}
       - name: Push Tag to GitHub and Release new NPM version
-        run: git push --follow-tags origin master && npm publish ${{ contains(github.event.inputs.version-type, 'beta') || '--tag beta' }}
+        run: git push --follow-tags origin master && npm publish ${{ contains(github.event.inputs.version-type, 'beta') && '--tag beta' || '' }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
