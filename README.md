@@ -12,7 +12,7 @@ This project provides the `Conn` class, which enables you to create a connection
 
 ```ts
 // How to instanciate Conn:
-import { Conn } from "mcproxy";
+import { Conn } from "@rob9315/mcproxy";
 const conn = new Conn(botOptions: mineflayer.BotOptions, relayExcludedPacketNames?: string[], options: ConnOptions);
 ```
 

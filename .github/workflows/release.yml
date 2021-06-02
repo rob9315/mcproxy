@@ -5,26 +5,29 @@ on:
   workflow_dispatch:
     inputs:
       version-type:
-        description: How major the changes are [ major | minor | patch | beta | exact_semver ]
+        description: How major the changes are [ major | minor | patch | prerelease ]
         required: true
         default: patch
 
 jobs:
   release:
-    name: Github and NPM Release
+    name: GitHub and NPM Release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
+        with:
+          registry-url: https://registry.npmjs.org/
+          always-auth: true
+      - name: Install dependencies
+        run: yarn --dev
       - name: Configure git credentials
         uses: OleksiyRudenko/gha-git-credentials@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           name: ${{ github.actor }}
           email: ${{ github.actor }}@users.noreply.github.com
-      - name: Bump version in package.json and add to CHANGELOG.md
-        run: npx standard-version --release-as ${{ github.event.inputs.version-type == 'beta' && 'patch --prerelease beta' || github.event.inputs.version-type }}
-      - name: Push Tag to GitHub and Release new NPM version
-        run: git push --follow-tags origin master && npm publish ${{ contains(github.event.inputs.version-type, 'beta') || '--tag beta' }}
+      - name: Release new version to NPM and push Tag to GitHub
+        run: yarn publish --non-interactive --access public --${{ github.event.inputs.version-type }} --preid beta ${{ contains(github.event.inputs.version-type, 'pre') && '--tag beta' || '' }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
