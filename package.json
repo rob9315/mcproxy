@@ -18,7 +18,7 @@
     "library",
     "mineflayer"
   ],
-  "author": "Rob9315",
+  "author": "rob9315",
   "license": "GPL-3.0",
   "dependencies": {
     "minecraft-data": "^2.84.0",
