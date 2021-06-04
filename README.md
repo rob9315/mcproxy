@@ -1,3 +1,5 @@
+[![Release][release-shield]][release-link] [![Continuous Integration][ci-shield]][ci-link] [![Latest][semver-shield]][semver-link] [![Beta][beta-shield]][beta-link]
+
 # mcproxy
 
 a minecraft proxy library powered by mineflayer that replicates data as well as possible from available information of mineflayer
@@ -67,3 +69,16 @@ Conn.writeIf(name, data)
 ```
 
 this is an internal method for filtering Packets, can be used outside but is mostly not necessary to use
+
+<!-- markdown links -->
+
+[release-shield]: https://img.shields.io/github/workflow/status/rob9315/mcproxy/Release?label=Release&style=for-the-badge
+[release-link]: https://github.com/rob9315/mcproxy/actions/workflows/release.yml
+[ci-shield]: https://img.shields.io/github/workflow/status/rob9315/mcproxy/Continuous%20Integration?label=master&style=for-the-badge
+[ci-link]: https://github.com/rob9315/mcproxy/actions/workflows/ci.yml
+[npm-shield]: https://img.shields.io/github/package-json/v/rob9315/mcproxy?label=npm&style=for-the-badge
+[npm-link]: https://www.npmjs.com/package/@rob9315/mcproxy
+[beta-shield]: https://img.shields.io/github/v/tag/rob9315/mcproxy?include_prereleases&label=beta&sort=semver&style=for-the-badge
+[beta-link]: https://www.npmjs.com/package/@rob9315/mcproxy/v/beta
+[semver-shield]: https://img.shields.io/github/v/tag/rob9315/mcproxy?include_releases&label=latest&sort=semver&style=for-the-badge
+[semver-link]: https://www.npmjs.com/package/@rob9315/mcproxy
