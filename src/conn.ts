@@ -72,10 +72,10 @@ export class Conn {
             this.bot.entity.position.y = data.y;
             this.bot.entity.position.z = data.z;
           }
-          // if (packetMeta.name.includes('look')) {
-          //   this.bot.entity.yaw = data.yaw;
-          //   this.bot.entity.pitch = data.pitch;
-          // }
+          if (packetMeta.name.includes('look')) {
+            this.bot.entity.yaw = ( 180 - data.yaw ) * Math.PI / 180;
+            this.bot.entity.pitch = ( 360 - data.pitch ) * Math.PI / 180;
+          }
           if (packetMeta.name == 'held_item_slot') {
             this.bot.quickBarSlot = data.slotId;
           }
