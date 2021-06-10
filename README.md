@@ -8,6 +8,16 @@ a minecraft proxy library powered by mineflayer that replicates data as well as 
 
 This project was inspired by [2bored2wait](https://github.com/themoonisacheese/2bored2wait) and now serves as a dependency of it. This project relies heavily on the great work that the awesome people of the [PrismarineJS project](https://prismarine.js.org/) have done.
 
+## Installation
+
+To add this to your project, it is recommended to use the latest version from npm. To install, use your favourite package manager to fetch it from npm as such:
+
+```sh
+npm install @rob9315/mcproxy
+# or
+yarn add @rob9315/mcproxy
+```
+
 ## API
 
 This project provides the `Conn` class, which enables you to create a connection to a server and connect clients to the Conn instance. The connection will stay after you disconnect from the Conn instance.
