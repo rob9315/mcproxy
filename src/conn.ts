@@ -1,5 +1,8 @@
-import mineflayer from 'mineflayer';
-import mc from 'minecraft-protocol';
+import { Bot, BotOptions, createBot } from 'mineflayer';
+import { SmartBuffer } from 'smart-buffer';
+import type { Client } from 'minecraft-protocol';
+
+const MAX_CHUNK_DATA_LENGTH = 31598;
 
 export const dimension: Record<string, number> = {
   'minecraft:the_end': 1,
@@ -33,30 +36,27 @@ export interface connOptions {
 }
 
 export class Conn {
-  bot: mineflayer.Bot;
-  pclient?: mc.Client;
+  bot: Bot;
+  pclient?: Client;
   private events: { event: string; listener: (...arg0: any) => void }[];
-  private metadata: { [entityId: number]: { key: number; type: number; value: any } };
+  // private metadata: { [entityId: number]: { key: number; type: number; value: any } } = [];
   excludedPacketNames: string[];
-  write = (name: string, data: any): void => {};
-  writeRaw = (buffer: any): void => {};
-  writeChannel = (channel: any, params: any): void => {};
+  write: (name: string, data: any) => void = () => {};
+  writeRaw: (buffer: any) => void = () => {};
+  writeChannel: (channel: any, params: any) => void = () => {};
   consolePrints: boolean;
-  constructor(botOptions: mineflayer.BotOptions, relayExcludedPacketNames?: string[], options?: connOptions) {
-    this.bot = mineflayer.createBot(botOptions);
+  constructor(botOptions: BotOptions, relayExcludedPacketNames?: string[], options?: connOptions) {
+    this.bot = createBot(botOptions);
     this.write = this.bot._client.write.bind(this.bot._client);
     this.writeRaw = this.bot._client.writeRaw.bind(this.bot._client);
     this.writeChannel = this.bot._client.writeChannel.bind(this.bot._client);
-    this.metadata = [];
     this.excludedPacketNames = relayExcludedPacketNames || ['keep_alive'];
     this.consolePrints = options?.consolePrints ?? false;
     this.bot._client.on('packet', (data, packetMeta) => {
-      if (this.pclient) {
-        try {
-          this.pclient.write(packetMeta.name, data);
-        } catch (error) {
-          this.log('pclient disconnected');
-        }
+      try {
+        this.pclient?.write(packetMeta.name, data);
+      } catch {
+        this.log('pclient disconnected');
       }
     });
 
@@ -73,8 +73,8 @@ export class Conn {
             this.bot.entity.position.z = data.z;
           }
           if (packetMeta.name.includes('look')) {
-            this.bot.entity.yaw = ( 180 - data.yaw ) * Math.PI / 180;
-            this.bot.entity.pitch = ( 360 - data.pitch ) * Math.PI / 180;
+            this.bot.entity.yaw = ((180 - data.yaw) * Math.PI) / 180;
+            this.bot.entity.pitch = ((360 - data.pitch) * Math.PI) / 180;
           }
           if (packetMeta.name == 'held_item_slot') {
             this.bot.quickBarSlot = data.slotId;
@@ -98,17 +98,12 @@ export class Conn {
     if (options?.events) this.events = [...options?.events, ...this.events];
     //* entity metadata tracking
     this.bot._client.on('packet', (data) => {
-      if (Object.prototype.hasOwnProperty.call(data, 'metadata') && Object.prototype.hasOwnProperty.call(data, 'entityId') && this.bot.entities[data.entityId]) {
-        (this.bot.entities[data.entityId] as any).rawMetadata = data.metadata;
-      }
+      if (data.metadata && data.entityId && this.bot.entities[data.entityId]) (this.bot.entities[data.entityId] as any).rawMetadata = data.metadata;
     });
   }
 
-  sendPackets(pclient: mc.Client) {
-    let packets: Packet[] = this.generatePackets();
-    packets.forEach(({ data, name }) => {
-      pclient.write(name, data);
-    });
+  sendPackets(pclient: Client) {
+    this.generatePackets().forEach(({ data, name }) => pclient.write(name, data));
   }
 
   generatePackets(): Packet[] {
@@ -118,7 +113,7 @@ export class Conn {
     packets.push({
       name: 'login',
       data: {
-        entityId: (this.bot.entity as any).id,
+        entityId: this.bot.entity.id,
         gamemode: gamemode[this.bot.game.gameMode],
         dimension: dimension[this.bot.game.dimension],
         difficulty: difficulty[this.bot.game.difficulty],
@@ -149,9 +144,7 @@ export class Conn {
     packets.push({
       name: 'position',
       data: {
-        x: this.bot.entity.position.x,
-        y: this.bot.entity.position.y,
-        z: this.bot.entity.position.z,
+        ...this.bot.entity.position,
         yaw: this.bot.entity.yaw,
         pitch: this.bot.entity.pitch,
       },
@@ -237,7 +230,7 @@ export class Conn {
             packets.push({
               name: 'named_entity_spawn',
               data: {
-                entityId: (player.entity as any).id,
+                entityId: player.entity.id,
                 playerUUID: player.uuid,
                 x: player.entity.position.x,
                 y: player.entity.position.y,
@@ -252,37 +245,48 @@ export class Conn {
       }
     }
 
-    function getBlockEntities(bot: mineflayer.Bot, chunkX: number, chunkZ: number) {
-      let blockEntities = [];
-      for (const index in (bot as any)._blockEntities) {
-        if (Object.prototype.hasOwnProperty.call((bot as any)._blockEntities, index)) {
-          const blockEntity = (bot as any)._blockEntities[index];
-          if (Math.floor(blockEntity.x / 16) == chunkX && Math.floor(blockEntity.z / 16) == chunkZ) {
-            blockEntities.push(blockEntity.raw);
+    //* map_chunk (s)
+    this.bot.world.getColumns().forEach((chunk: any) => packets.push(...chunkColumnToPackets.bind(this)(chunk)));
+
+    //*generates multiple packets from a chunk column, if needed
+    function chunkColumnToPackets(this: Conn, { chunkX: x, chunkZ: z, column }: { chunkX: number; chunkZ: number; column: any }, lastBitMask?: number, chunkData: SmartBuffer = new SmartBuffer()): Packet[] {
+      let bitMask = !!lastBitMask ? column.getMask() ^ (column.getMask() & ((lastBitMask << 1) - 1)) : column.getMask();
+      let bitMap = lastBitMask ?? 0b0;
+      let newChunkData = new SmartBuffer();
+      // checks with bitmask if there is a chunk in memory that (a) exists and (b) was not sent to the client yet
+      for (let i = 0; i < 16; i++)
+        if (bitMask & (0b1 << i)) {
+          column.sections[i].write(newChunkData);
+          bitMask ^= 0b1 << i;
+          if (chunkData.length + newChunkData.length > MAX_CHUNK_DATA_LENGTH) {
+            if (!lastBitMask) column.biomes?.forEach((biome: number) => chunkData.writeUInt8(biome));
+            return [
+              {
+                name: 'map_chunk',
+                data: { x, z, bitMap, chunkData: chunkData.toBuffer(), groundUp: !lastBitMask, blockEntities: [] },
+              },
+              ...chunkColumnToPackets.bind(this)({ chunkX: x, chunkZ: z, column }, 0b1 << i, newChunkData),
+            ];
           }
+          bitMap ^= 0b1 << i;
+          chunkData.writeBuffer(newChunkData.toBuffer());
+          newChunkData.clear();
         }
-      }
-      return blockEntities;
+      if (!lastBitMask) column.biomes?.forEach((biome: number) => chunkData.writeUInt8(biome));
+      return [
+        {
+          name: 'map_chunk',
+          data: { x, z, bitMap, chunkData: chunkData.toBuffer(), groundUp: !lastBitMask, blockEntities: [] },
+        },
+      ];
     }
 
-    //* map_chunk (s)
-    let columnArray = (this.bot as any).world.getColumns();
-    for (const index in columnArray) {
-      if (Object.prototype.hasOwnProperty.call(columnArray, index)) {
-        const { chunkX, chunkZ, column } = columnArray[index];
-        packets.push({
-          name: 'map_chunk',
-          data: {
-            x: chunkX,
-            z: chunkZ,
-            bitMap: column.getMask(),
-            chunkData: column.dump(),
-            groundUp: true,
-            blockEntities: getBlockEntities(this.bot, chunkX, chunkZ),
-          },
-        });
-      }
-    }
+    //* Block Entities
+    for (const [, { x, y, z, raw }] of (this.bot as any)._blockEntities as Map<string, { x: number; y: number; z: number; raw: Object }>)
+      packets.push({
+        name: 'tile_entity_data',
+        data: { location: { x, y, z }, nbtData: raw },
+      });
 
     //* entity stuff
     for (const index in this.bot.entities) {
@@ -293,7 +297,7 @@ export class Conn {
             packets.push({
               name: 'spawn_entity_experience_orb',
               data: {
-                entityId: (entity as unknown as any).id,
+                entityId: entity.id,
                 x: entity.position.x,
                 y: entity.position.y,
                 z: entity.position.z,
@@ -312,8 +316,8 @@ export class Conn {
             packets.push({
               name: 'spawn_entity_living',
               data: {
-                entityId: (entity as unknown as any).id,
-                entityUUID: (entity as unknown as any).uuid,
+                entityId: entity.id,
+                entityUUID: (entity as any).uuid,
                 type: entity.entityType,
                 x: entity.position.x,
                 y: entity.position.y,
@@ -332,7 +336,7 @@ export class Conn {
               packets.push({
                 name: 'entity_equipment',
                 data: {
-                  entityId: (entity as any).id,
+                  entityId: entity.id,
                   slot: index,
                   item: item,
                 },
@@ -349,7 +353,7 @@ export class Conn {
             packets.push({
               name: 'spawn_entity',
               data: {
-                entityId: (entity as any).id,
+                entityId: entity.id,
                 objectUUID: (entity as any).uuid,
                 type: entity.entityType,
                 x: entity.position.x,
@@ -367,7 +371,7 @@ export class Conn {
               packets.push({
                 name: 'entity_metadata',
                 data: {
-                  entityId: (entity as any).id,
+                  entityId: entity.id,
                   metadata: (entity as any).rawMetadata,
                 },
               });
@@ -377,6 +381,8 @@ export class Conn {
           //TODO add other?
           case 'other':
             // console.log(entity.type, entity);
+            break;
+          default:
             break;
         }
       }
@@ -390,12 +396,8 @@ export class Conn {
     }[] = [];
 
     this.bot.inventory.slots.forEach((item, index) => {
-      if (item == null) {
-        (item as any) = { type: -1 };
-      }
-      if (item.nbt == null) {
-        (item.nbt as any) = undefined;
-      }
+      item = item ?? { type: -1 };
+      item.nbt = item.nbt ?? undefined;
       items[index] = {
         blockId: item.type,
         itemCount: item.count,
@@ -425,37 +427,31 @@ export class Conn {
 
     return packets;
   }
-  sendLoginPacket(pclient: mc.Client): void {
+  sendLoginPacket(pclient: Client): void {
     pclient.write('login', {
       entityId: 9001,
       levelType: 'default',
       dimension: 1,
     });
   }
-  link(pclient: mc.Client): void {
+  link(pclient: Client): void {
     this.pclient = pclient;
     this.bot._client.write = this.writeIf.bind(this);
-    this.bot._client.writeRaw = (buffer: any) => {};
-    this.bot._client.writeChannel = (channel: any, params: any) => {};
-    this.events.forEach((event) => {
-      (this.pclient as any).on(event.event as any, event.listener);
-    });
+    this.bot._client.writeRaw = () => {};
+    this.bot._client.writeChannel = () => {};
+    this.events.forEach(({ event, listener }) => this.pclient?.on(event, listener));
   }
   unlink(): void {
     if (this.pclient) {
       this.bot._client.write = this.write.bind(this.bot._client);
       this.bot._client.writeRaw = this.writeRaw.bind(this.bot._client);
       this.bot._client.writeChannel = this.writeChannel.bind(this.bot._client);
-      this.events.forEach((event) => {
-        this.pclient?.removeListener(event.event, event.listener);
-      });
+      this.events.forEach(({ event, listener }) => this.pclient?.removeListener(event, listener));
       this.pclient = undefined;
     }
   }
   writeIf(name: string, data: any): void {
-    if (['keep_alive'].includes(name)) {
-      this.write(name, data);
-    }
+    if (['keep_alive'].includes(name)) this.write(name, data);
   }
   disconnect() {
     this.bot._client.end('conn: disconnect called');
