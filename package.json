@@ -2,24 +2,25 @@
   "name": "@rob9315/mcproxy",
   "version": "0.0.6-beta.0",
   "description": "a minecraft proxy library powered by mineflayer",
-  "main": "lib/index.js",
-  "types": "lib/index.d.ts",
-  "scripts": {
-    "build": "npx tsc",
-    "prepublish": "npm run build"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/rob9315/mcproxy.git"
-  },
   "keywords": [
     "minecraft",
     "proxy",
     "library",
     "mineflayer"
   ],
-  "author": "rob9315",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rob9315/mcproxy.git"
+  },
   "license": "GPL-3.0",
+  "author": "rob9315",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "build": "npx tsc",
+    "prepublish": "npm run build"
+  },
+  "prettier": "@rob9315/prettier-config",
   "dependencies": {
     "minecraft-data": "^2.86.0",
     "minecraft-protocol": "^1.25.0",
@@ -27,7 +28,8 @@
     "smart-buffer": "^4.1.0"
   },
   "devDependencies": {
-    "@types/node": "^15.12.5",
-    "typescript": "^4.3.4"
+    "@rob9315/prettier-config": "latest",
+    "@types/node": "^16.0.0",
+    "typescript": "^4.3.5"
   }
 }
