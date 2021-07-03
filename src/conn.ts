@@ -94,6 +94,7 @@ export class Conn {
     if (!this.bot.entity) return [];
     // needed for transformation of items to notchItem format
     const Item: typeof import('prismarine-item').Item = require('prismarine-item')(pclient?.protocolVersion ?? this.bot.version);
+    const Vec3: typeof import('vec3').default = require('vec3');
 
     let UUID = pclient?.uuid ?? this.bot.player.uuid;
     let packets: Packet[] = [
@@ -221,7 +222,11 @@ export class Conn {
     }
 
     //* splits a single chunk column into multiple packets if needed
-    function chunkColumnToPackets({ chunkX: x, chunkZ: z, column }: { chunkX: number; chunkZ: number; column: any }, lastBitMask?: number, chunkData: SmartBuffer = new SmartBuffer()): Packet[] {
+    function chunkColumnToPackets(
+      { chunkX: x, chunkZ: z, column }: { chunkX: number; chunkZ: number; column: any },
+      lastBitMask?: number,
+      chunkData: SmartBuffer = new SmartBuffer()
+    ): Packet[] {
       let bitMask = !!lastBitMask ? column.getMask() ^ (column.getMask() & ((lastBitMask << 1) - 1)) : column.getMask();
       let bitMap = lastBitMask ?? 0b0;
       let newChunkData = new SmartBuffer();
@@ -232,7 +237,10 @@ export class Conn {
           bitMask ^= 0b1 << i;
           if (chunkData.length + newChunkData.length > MAX_CHUNK_DATA_LENGTH) {
             if (!lastBitMask) column.biomes?.forEach((biome: number) => chunkData.writeUInt8(biome));
-            return [['map_chunk', { x, z, bitMap, chunkData: chunkData.toBuffer(), groundUp: !lastBitMask, blockEntities: [] }], ...chunkColumnToPackets({ chunkX: x, chunkZ: z, column }, 0b1 << i, newChunkData)];
+            return [
+              ['map_chunk', { x, z, bitMap, chunkData: chunkData.toBuffer(), groundUp: !lastBitMask, blockEntities: [] }],
+              ...chunkColumnToPackets({ chunkX: x, chunkZ: z, column }, 0b1 << i, newChunkData),
+            ];
           }
           bitMap ^= 0b1 << i;
           chunkData.writeBuffer(newChunkData.toBuffer());
@@ -243,7 +251,7 @@ export class Conn {
     }
 
     //* Block Entities
-    for (const [, { x, y, z, raw: nbtData }] of (this.bot as any)._blockEntities as Map<string, { x: number; y: number; z: number; raw: Object }>)
+    for (const [, { x, y, z, raw: nbtData }] of Object.entries((this.bot as any)._blockEntities as Map<string, { x: number; y: number; z: number; raw: Object }>)) {
       packets.push([
         'tile_entity_data',
         {
@@ -251,6 +259,18 @@ export class Conn {
           nbtData,
         },
       ]);
+      let block = this.bot.blockAt(Vec3({ x, y, z }));
+      if (block?.name.includes('chest'))
+        packets.push([
+          'block_action',
+          {
+            location: { x, y, z },
+            byte1: 1,
+            byte2: 0,
+            blockId: block.type,
+          },
+        ]);
+    }
 
     //* entity stuff
     for (const index in this.bot.entities) {
