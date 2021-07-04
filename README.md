@@ -1,6 +1,6 @@
 [![Release][release-shield]][release-link] [![Continuous Integration][ci-shield]][ci-link] [![Latest][semver-shield]][semver-link] [![Beta][beta-shield]][beta-link]
 
-# mcproxy
+# mcproxy [WIP]
 
 a minecraft proxy library powered by mineflayer that replicates data as well as possible from available information of mineflayer
 
