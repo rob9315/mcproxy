@@ -43,8 +43,8 @@ ConnOptions regulate Conn-specific settings.
 - `ConnOptions.events`: extra events you can specify that will listen on every pclient that is attached. You can also specify methods in the array that return an event. They can take the `Conn` and specific `pclient` as options. The type definition of events looks as such:
 
   ```ts
-  export type ClientEventTuple = [event: string, listener: (...args: any) => void];
-  export type ClientEvents = (ClientEventTuple | ((conn: Conn, pclient: Client) => ClientEventTuple))[];
+  type ClientEventTuple = [event: string, listener: (...args: any) => void];
+  type ClientEvents = (ClientEventTuple | ((conn: Conn, pclient: Client) => ClientEventTuple))[];
   ```
 
 - `ConnOptions.internalWhitelist`: a packet name whitelist for the internal bot. Whitelisted packets are still sent even if a proxyClient is currently linked.
@@ -138,7 +138,7 @@ Conn.unlink();
 ```
 
 reverses the `link` method. The bot becomes the one to send packets to the server again.
-If the proxyClient should be detached as well ,
+If the proxyClient should be detached as well
 
 ### `Conn.writeIf()`
 
@@ -147,6 +147,10 @@ Conn.writeIf(name, data);
 ```
 
 an internal method for filtering the bots Packets, can be used outside but as an API method basically useless.
+
+### `Conn.disconnect()`
+
+disconnects from the server and detaches all pclients
 
 <!-- markdown links -->
 

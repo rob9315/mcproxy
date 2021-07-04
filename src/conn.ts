@@ -100,7 +100,7 @@ export class Conn {
   writeIf(name: string, data: any) {
     if (this.options.internalWhitelist.includes(name)) this.write(name, data);
   }
-  //* disconnect from the server and ends all client's connections
+  //* disconnect from the server and ends detaches all pclients
   disconnect() {
     this.bot._client.end('conn: disconnect called');
     this.pclients.forEach(this.detach);
