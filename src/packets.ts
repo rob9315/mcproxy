@@ -24,7 +24,7 @@ export const difficulty: Record<string, number> = {
   hard: 3,
 };
 
-export function generatePackets(bot: Bot & { recipes: number[] }, pclient?: Client) {
+export function generatePackets(bot: Bot & { recipes: number[] }, pclient?: Client): Packet[] {
   //* if not spawned yet, return nothing
   if (!bot.entity) return [];
 
@@ -130,67 +130,55 @@ export function generatePackets(bot: Bot & { recipes: number[] }, pclient?: Clie
       },
     ],
     //* other players' info
-    ...Object.values(bot.players).reduce<Packet[]>(
-      (packets, { uuid, username, gamemode, ping, entity }) => [
-        ...packets,
-        ...((uuid != UUID
-          ? [
-              [
-                'player_info',
-                {
-                  action: 0,
-                  data: [{ UUID: uuid, name: username, properties: [], gamemode, ping, displayName: undefined }],
-                },
-              ],
-              !entity
-                ? undefined
-                : [
-                    'named_entity_spawn',
-                    {
-                      ...entity.position,
-                      entityId: entity.id,
-                      playerUUID: uuid,
-                      yaw: entity.yaw,
-                      pitch: entity.pitch,
-                      metadata: (entity as any).rawMetadata,
-                    },
-                  ],
-            ]
-          : []) as Packet[]),
-      ],
-      []
-    ),
+    ...Object.values(bot.players).reduce<Packet[]>((packets, { uuid, username, gamemode, ping, entity }) => {
+      if (uuid != UUID) {
+        packets.push([
+          'player_info',
+          {
+            action: 0,
+            data: [{ UUID: uuid, name: username, properties: [], gamemode, ping, displayName: undefined }],
+          },
+        ]);
+        if (entity)
+          packets.push([
+            'named_entity_spawn',
+            {
+              ...entity.position,
+              entityId: entity.id,
+              playerUUID: uuid,
+              yaw: entity.yaw,
+              pitch: entity.pitch,
+              metadata: (entity as any).rawMetadata,
+            },
+          ]);
+      }
+      return packets;
+    }, []),
     ...(bot.world.getColumns() as any[]).reduce<Packet[]>((packets, chunk) => [...packets, ...chunkColumnToPackets(chunk)], []),
     //? `world_border` (as of 1.12.2) => really needed?
     //* block entities
-    ...Object.values((bot as any)._blockEntities as Map<string, { x: number; y: number; z: number; raw: Object }>).reduce<(Packet | undefined)[]>(
-      (packets, { x, y, z, raw: nbtData }) => {
-        let block = bot.blockAt(Vec3({ x, y, z }));
-        return [
-          ...packets,
-          [
-            'tile_entity_data',
-            {
-              location: { x, y, z },
-              nbtData,
-            },
-          ],
-          block?.name.includes('chest')
-            ? [
-                'block_action',
-                {
-                  location: { x, y, z },
-                  byte1: 1,
-                  byte2: 0,
-                  blockId: block.type,
-                },
-              ]
-            : undefined,
-        ];
-      },
-      []
-    ),
-    ...Object.values(bot.entities).reduce<(Packet | undefined)[]>((packets, entity) => {
+    ...Object.values((bot as any)._blockEntities as Map<string, { x: number; y: number; z: number; raw: Object }>).reduce((packets, { x, y, z, raw: nbtData }) => {
+      packets.push([
+        'tile_entity_data',
+        {
+          location: { x, y, z },
+          nbtData,
+        },
+      ]);
+      let block = bot.blockAt(Vec3({ x, y, z }));
+      if (block?.name.includes('chest'))
+        packets.push([
+          'block_action',
+          {
+            location: { x, y, z },
+            byte1: 1,
+            byte2: 0,
+            blockId: block.type,
+          },
+        ]);
+      return packets;
+    }, []),
+    ...Object.values(bot.entities).reduce<Packet[]>((packets, entity) => {
       switch (entity.type) {
         case 'orb':
           packets.push([
@@ -221,20 +209,18 @@ export function generatePackets(bot: Bot & { recipes: number[] }, pclient?: Clie
                 metadata: (entity as any).rawMetadata,
               },
             ],
-            ...(entity.equipment
-              .map((item, slot) =>
-                !!item
-                  ? undefined
-                  : ([
-                      'entity_equipment',
-                      {
-                        entityId: entity.id,
-                        slot,
-                        item: itemToNotch(item),
-                      },
-                    ] as Packet | null)
-              )
-              .filter((v) => !!v) as Packet[])
+            ...entity.equipment.reduce((arr, item, slot) => {
+              if (item)
+                arr.push([
+                  'entity_equipment',
+                  {
+                    entityId: entity.id,
+                    slot,
+                    item: itemToNotch(item),
+                  },
+                ]);
+              return arr;
+            }, [] as Packet[])
           );
           break;
 
@@ -260,20 +246,20 @@ export function generatePackets(bot: Bot & { recipes: number[] }, pclient?: Clie
           //TODO add more?
           break;
       }
-      return [
-        ...packets,
-        (entity as any).rawMetadata?.length > 0
-          ? [
-              'entity_metadata',
-              {
-                entityId: entity.id,
-                metadata: (entity as any).rawMetadata,
-              },
-            ]
-          : undefined,
-      ];
+      if ((entity as any).rawMetadata?.length > 0)
+        packets.push([
+          'entity_metadata',
+          {
+            entityId: entity.id,
+            metadata: (entity as any).rawMetadata,
+          },
+        ]);
+      return packets;
     }, []),
-  ].filter((v) => !!v) as Packet[];
+    ...(bot.isRaining ? [['game_state_change', { reason: 1, gameMode: 0 }]] : []),
+    ...((bot as any).rainState !== 0 ? [['game_state_change', { reason: 7, gameMode: (bot as any).rainState }]] : []),
+    ...((bot as any).thunderState !== 0 ? [['game_state_change', { reason: 8, gameMode: (bot as any).thunderState }]] : []),
+  ] as Packet[];
 }
 
 //* splits a single chunk column into multiple packets if needed

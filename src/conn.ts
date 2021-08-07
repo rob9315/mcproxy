@@ -48,8 +48,8 @@ export class Conn {
       });
       //* entity metadata tracking
       if (data.metadata && data.entityId && this.bot.entities[data.entityId]) (this.bot.entities[data.entityId] as any).rawMetadata = data.metadata;
-      //* recipe tracking https://wiki.vg/index.php?title=Protocol&oldid=14204#Unlock_Recipes
       
+      //* recipe tracking https://wiki.vg/index.php?title=Protocol&oldid=14204#Unlock_Recipes
       switch (name) {
         case 'unlock_recipes':
           switch (data.action) {
