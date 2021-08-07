@@ -28,7 +28,7 @@ export class ConnOptions {
 
 export class Conn {
   options: ConnOptions;
-  bot: Bot;
+  bot: Bot & { recipes: number[] };
   pclient: Client | undefined;
   pclients: Client[] = [];
   write: (name: string, data: any) => void = () => {};
@@ -36,7 +36,8 @@ export class Conn {
   writeChannel: (channel: any, params: any) => void = () => {};
   constructor(botOptions: BotOptions, options?: Partial<ConnOptions>) {
     this.options = { ...new ConnOptions(), ...options };
-    this.bot = createBot(botOptions);
+    this.bot = (createBot(botOptions) as any);
+    this.bot.recipes = [];
     this.write = this.bot._client.write.bind(this.bot._client);
     this.writeRaw = this.bot._client.writeRaw.bind(this.bot._client);
     this.writeChannel = this.bot._client.writeChannel.bind(this.bot._client);
@@ -47,6 +48,24 @@ export class Conn {
       });
       //* entity metadata tracking
       if (data.metadata && data.entityId && this.bot.entities[data.entityId]) (this.bot.entities[data.entityId] as any).rawMetadata = data.metadata;
+      //* recipe tracking https://wiki.vg/index.php?title=Protocol&oldid=14204#Unlock_Recipes
+      if (name == 'unlock_recipes')
+        switch (data.action) {
+          case 0: //* initialize
+            this.bot.recipes = data.recipes1;
+            break;
+          case 1: //* add
+            this.bot.recipes = [...this.bot.recipes, ...data.recipes1];
+            break;
+          case 2: //* remove
+            this.bot.recipes = Array.from(
+              (data.recipes1 as number[]).reduce((recipes, recipe) => {
+                recipes.delete(recipe);
+                return recipes;
+              }, new Set(this.bot.recipes))
+            );
+            break;
+        }
     });
     this.options.events = [...defaultEvents, ...this.options.events];
   }
@@ -100,7 +119,7 @@ export class Conn {
   writeIf(name: string, data: any) {
     if (this.options.internalWhitelist.includes(name)) this.write(name, data);
   }
-  //* disconnect from the server and ends detaches all pclients
+  //* disconnect from the server and ends, detaches all pclients
   disconnect() {
     this.bot._client.end('conn: disconnect called');
     this.pclients.forEach(this.detach);
@@ -122,19 +141,29 @@ const defaultEvents: ClientEvents = [
         //* relay packet
         conn.write(name, data);
         //* keep mineflayer info up to date
-        if (name.includes('position')) {
-          conn.bot.entity.position.x = data.x;
-          conn.bot.entity.position.y = data.y;
-          conn.bot.entity.position.z = data.z;
-          conn.bot.entity.onGround = data.onGround;
+        switch (name) {
+          case 'position':
+            conn.bot.entity.position.x = data.x;
+            conn.bot.entity.position.y = data.y;
+            conn.bot.entity.position.z = data.z;
+            conn.bot.entity.onGround = data.onGround;
+            break;
+          case 'position_look': // FALLTHROUGH
+            conn.bot.entity.position.x = data.x;
+            conn.bot.entity.position.y = data.y;
+            conn.bot.entity.position.z = data.z;
+          case 'look':
+            conn.bot.entity.yaw = ((180 - data.yaw) * Math.PI) / 180;
+            conn.bot.entity.pitch = -(data.pitch * Math.PI) / 180;
+            conn.bot.entity.onGround = data.onGround;
+            break;
+          case 'held_item_slot':
+            conn.bot.quickBarSlot = data.slotId;
+            break;
+          case 'abilities':
+            conn.bot.physicsEnabled = !!((data.flags & 0b10) ^ 0b10);
+            break;
         }
-        if (name.includes('look')) {
-          conn.bot.entity.yaw = ((180 - data.yaw) * Math.PI) / 180;
-          conn.bot.entity.pitch = -(data.pitch * Math.PI) / 180;
-          conn.bot.entity.onGround = data.onGround;
-        }
-        if (name == 'held_item_slot') conn.bot.quickBarSlot = data.slotId;
-        if (name == 'abilities') conn.bot.physicsEnabled = !!((data.flags & 0b10) ^ 0b10);
       }
     },
   ],

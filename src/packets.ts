@@ -24,14 +24,14 @@ export const difficulty: Record<string, number> = {
   hard: 3,
 };
 
-export function generatePackets(bot: Bot, pclient?: Client) {
+export function generatePackets(bot: Bot & { recipes: number[] }, pclient?: Client) {
   //* if not spawned yet, return nothing
   if (!bot.entity) return [];
 
   //* load up some helper methods
   const { toNotch: itemToNotch }: typeof import('prismarine-item').Item = require('prismarine-item')(pclient?.protocolVersion ?? bot.version);
   const Vec3: typeof import('vec3').default = require('vec3');
-  const UUID = pclient?.uuid ?? bot.player.uuid;
+  const UUID = bot.player.uuid; //pclient?.uuid ??
 
   return [
     [
@@ -64,11 +64,20 @@ export function generatePackets(bot: Bot, pclient?: Client) {
       },
     ],
     ['held_item_slot', { slot: bot.quickBarSlot ?? 1 }],
-    //! declare recipes
+    //? declare recipes
     //? tags?
     //? entity status theoretically (current animation playing)
     //? commands / add option to provide own commands
-    //! unlock recipes
+    [
+      'unlock_recipes',
+      {
+        action: 0,
+        craftingBookOpen: false,
+        filteringCraftable: false,
+        recipes1: bot.recipes,
+        recipes2: bot.recipes,
+      },
+    ],
     //* gamemode
     ['game_state_change', { reason: 3, gameMode: bot.player.gamemode }],
     [
