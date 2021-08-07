@@ -122,7 +122,7 @@ export class Conn {
   //* disconnect from the server and ends, detaches all pclients
   disconnect() {
     this.bot._client.end('conn: disconnect called');
-    this.pclients.forEach(this.detach);
+    this.pclients.forEach(this.detach.bind(this));
   }
 }
 
