@@ -49,23 +49,30 @@ export class Conn {
       //* entity metadata tracking
       if (data.metadata && data.entityId && this.bot.entities[data.entityId]) (this.bot.entities[data.entityId] as any).rawMetadata = data.metadata;
       //* recipe tracking https://wiki.vg/index.php?title=Protocol&oldid=14204#Unlock_Recipes
-      if (name == 'unlock_recipes')
-        switch (data.action) {
-          case 0: //* initialize
-            this.bot.recipes = data.recipes1;
-            break;
-          case 1: //* add
-            this.bot.recipes = [...this.bot.recipes, ...data.recipes1];
-            break;
-          case 2: //* remove
-            this.bot.recipes = Array.from(
-              (data.recipes1 as number[]).reduce((recipes, recipe) => {
-                recipes.delete(recipe);
-                return recipes;
-              }, new Set(this.bot.recipes))
-            );
-            break;
-        }
+      
+      switch (name) {
+        case 'unlock_recipes':
+          switch (data.action) {
+            case 0: //* initialize
+              this.bot.recipes = data.recipes1;
+              break;
+            case 1: //* add
+              this.bot.recipes = [...this.bot.recipes, ...data.recipes1];
+              break;
+            case 2: //* remove
+              this.bot.recipes = Array.from(
+                (data.recipes1 as number[]).reduce((recipes, recipe) => {
+                  recipes.delete(recipe);
+                  return recipes;
+                }, new Set(this.bot.recipes))
+              );
+              break;
+          }
+          break;
+        case "abilities":
+          this.bot.physicsEnabled = !!((data.flags & 0b10) ^ 0b10)
+          break;
+      }
     });
     this.options.events = [...defaultEvents, ...this.options.events];
   }

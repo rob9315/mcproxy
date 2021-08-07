@@ -5,7 +5,7 @@ import { SmartBuffer } from 'smart-buffer';
 const MAX_CHUNK_DATA_LENGTH = 31598;
 
 export const dimension: Record<string, number> = {
-  'minecraft:the_end': 1,
+  'minecraft:end': 1,
   'minecraft:overworld': 0,
   'minecraft:nether': -1,
 };
