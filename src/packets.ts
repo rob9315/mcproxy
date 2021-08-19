@@ -139,18 +139,27 @@ export function generatePackets(bot: Bot & { recipes: number[] }, pclient?: Clie
             data: [{ UUID: uuid, name: username, properties: [], gamemode, ping, displayName: undefined }],
           },
         ]);
-        if (entity)
+        if (entity) {
           packets.push([
             'named_entity_spawn',
             {
               ...entity.position,
               entityId: entity.id,
               playerUUID: uuid,
-              yaw: entity.yaw,
-              pitch: entity.pitch,
+              yaw: -(Math.floor(((entity.yaw / Math.PI) * 128 + 255) % 256) - 127),
+              pitch: -Math.floor(((entity.pitch / Math.PI) * 128) % 256),
               metadata: (entity as any).rawMetadata,
             },
           ]);
+          if ((entity as any).headYaw)
+            packets.push([
+              'entity_head_rotation',
+              {
+                entityId: entity.id,
+                headYaw: -(Math.floor((((entity as any).headYaw / Math.PI) * 128 + 255) % 256) - 127),
+              },
+            ]);
+        }
       }
       return packets;
     }, []),

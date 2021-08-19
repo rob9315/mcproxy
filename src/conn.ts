@@ -36,7 +36,7 @@ export class Conn {
   writeChannel: (channel: any, params: any) => void = () => {};
   constructor(botOptions: BotOptions, options?: Partial<ConnOptions>) {
     this.options = { ...new ConnOptions(), ...options };
-    this.bot = (createBot(botOptions) as any);
+    this.bot = createBot(botOptions) as any;
     this.bot.recipes = [];
     this.write = this.bot._client.write.bind(this.bot._client);
     this.writeRaw = this.bot._client.writeRaw.bind(this.bot._client);
@@ -48,7 +48,7 @@ export class Conn {
       });
       //* entity metadata tracking
       if (data.metadata && data.entityId && this.bot.entities[data.entityId]) (this.bot.entities[data.entityId] as any).rawMetadata = data.metadata;
-      
+
       //* recipe tracking https://wiki.vg/index.php?title=Protocol&oldid=14204#Unlock_Recipes
       switch (name) {
         case 'unlock_recipes':
@@ -69,8 +69,8 @@ export class Conn {
               break;
           }
           break;
-        case "abilities":
-          this.bot.physicsEnabled = !!((data.flags & 0b10) ^ 0b10)
+        case 'abilities':
+          this.bot.physicsEnabled = !!((data.flags & 0b10) ^ 0b10);
           break;
       }
     });
