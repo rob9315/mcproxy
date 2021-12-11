@@ -1,5 +1,5 @@
 import { Bot, BotOptions, createBot } from 'mineflayer';
-import type { Client as mcpClient } from 'minecraft-protocol';
+import type { Client as mcpClient, PacketMeta } from 'minecraft-protocol';
 import { generatePackets } from './packets';
 
 export type Packet = [name: string, data: any];
@@ -14,6 +14,9 @@ export type Client = mcpClient & {
   toServerBlackList?: string[];
   //* filter when the client is attached
   toClientBlackList?: string[];
+
+  toClientMiddleware: PacketMiddleware;
+  toServerMiddleware: PacketMiddleware;
 };
 
 export class ConnOptions {
@@ -24,6 +27,26 @@ export class ConnOptions {
   toServerBlackList: string[] = ['keep_alive'];
   //* filter for all attached clients if it is not overwritten by the client
   toClientBlackList: string[] = ['keep_alive'];
+  //* Middleware to control packets being send to the client and server
+  toClientMiddleware?: PacketMiddleware = (): void | Promise<void> => {}
+  toServerMiddleware?: PacketMiddleware = (): void | Promise<void> => {}
+}
+
+export interface PacketMiddleware {
+  (info: {
+    bound: 'server' | 'client',
+    writeType: 'packet' | 'rawPacket' | 'channel',
+    meta: PacketMeta
+  }, pclient: Client, data: any, cancel: () => void): void | Promise<void>;
+}
+
+function DefaultMiddleware(this: any, info: {
+  bound: 'server' | 'client',
+  writeType: 'packet' | 'rawPacket' | 'channel',
+  meta: PacketMeta
+}, pclient: Client, data: any, cancel: () => void): void | Promise<void> {
+  if ((info.bound === 'client' && (pclient.toClientBlackList ?? this.options.toClientBlackList).includes(data.name)) 
+    || (info.bound === 'server' && (pclient.toServerBlackList ?? this.options.toServerBlackList).includes(data.name))) cancel()
 }
 
 export class Conn {
@@ -31,6 +54,8 @@ export class Conn {
   bot: Bot & { recipes: number[] };
   pclient: Client | undefined;
   pclients: Client[] = [];
+  toClientMiddleware?: PacketMiddleware = undefined;
+  toServerMiddleware?: PacketMiddleware = undefined;
   write: (name: string, data: any) => void = () => {};
   writeRaw: (buffer: any) => void = () => {};
   writeChannel: (channel: any, params: any) => void = () => {};
@@ -41,16 +66,29 @@ export class Conn {
     this.write = this.bot._client.write.bind(this.bot._client);
     this.writeRaw = this.bot._client.writeRaw.bind(this.bot._client);
     this.writeChannel = this.bot._client.writeChannel.bind(this.bot._client);
-    this.bot._client.on('packet', (data, { name }) => {
+    if (options?.toClientMiddleware) this.toClientMiddleware = options.toClientMiddleware;
+    if (options?.toServerMiddleware) this.toServerMiddleware = options.toServerMiddleware;
+    this.bot._client.on('packet', async (data, meta) => {
       //* relay packet to all connected clients
-      this.pclients.forEach((pclient) => {
-        if (!(pclient.toClientBlackList ?? this.options.toClientBlackList).includes(name)) pclient.write(name, data);
-      });
+      if (!this.options.toClientBlackList.includes(meta.name)) {
+        for (const pclient of this.pclients) {
+          const middleware = this.toClientMiddleware ?? pclient.toClientMiddleware ?? DefaultMiddleware
+          let isCanceled = false;
+          const funcReturn = middleware({ bound: 'client', meta, writeType: 'packet' }, pclient, data, () => {
+            isCanceled = true;
+          })
+          if (funcReturn instanceof Promise) {
+            await funcReturn
+          }
+          if (!isCanceled) pclient.write(meta.name, data);
+        }
+      }
+      
       //* entity metadata tracking
       if (data.metadata && data.entityId && this.bot.entities[data.entityId]) (this.bot.entities[data.entityId] as any).rawMetadata = data.metadata;
 
       //* recipe tracking https://wiki.vg/index.php?title=Protocol&oldid=14204#Unlock_Recipes
-      switch (name) {
+      switch (meta.name) {
         case 'unlock_recipes':
           switch (data.action) {
             case 0: //* initialize
@@ -87,8 +125,9 @@ export class Conn {
   }
 
   //* attaching means receiving all packets from the server
-  attach(pclient: Client) {
+  attach(pclient: Client, options?: { toClientMiddleware?: PacketMiddleware }) {
     if (!this.pclients.includes(pclient)) {
+      if (options && options.toClientMiddleware) pclient.toClientMiddleware = options.toClientMiddleware;
       this.pclients.push(pclient);
       this.options.events.map(customizeClientEvents(this, pclient)).forEach(([event, listener]) => pclient.on(event, listener));
     }
@@ -104,12 +143,12 @@ export class Conn {
 
   //* linking means being the main client on the connection, being able to write to the server
   //* if not previously attached, this will do so.
-  link(pclient: Client) {
+  link(pclient: Client, options?: { toClientMiddleware?: PacketMiddleware }) {
     this.pclient = pclient;
     this.bot._client.write = this.writeIf.bind(this);
     this.bot._client.writeRaw = () => {};
     this.bot._client.writeChannel = () => {};
-    this.attach(pclient);
+    this.attach(pclient, options);
   }
   //* reverses linking
   //* doesn't remove the client from the pclients array, it is still attached
