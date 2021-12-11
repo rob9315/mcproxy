@@ -94,7 +94,7 @@ export function generatePackets(bot: Bot & { recipes: number[] }, pclient?: Clie
       'window_items',
       {
         windowId: 0,
-        items: bot.inventory.slots.map((item) => itemToNotch(item)),
+        items: bot.inventory.slots.map((item: any) => itemToNotch(item)),
       },
     ],
     [
