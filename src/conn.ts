@@ -15,8 +15,8 @@ export type Client = mcpClient & {
   //* filter when the client is attached
   toClientBlackList?: string[];
 
-  toClientMiddleware: PacketMiddleware;
-  toServerMiddleware: PacketMiddleware;
+  toClientMiddlewares: PacketMiddleware[];
+  toServerMiddlewares: PacketMiddleware[];
 };
 
 export class ConnOptions {
@@ -40,22 +40,14 @@ export interface PacketMiddleware {
   }, pclient: Client, data: any, cancel: () => void): void | Promise<void>;
 }
 
-function DefaultMiddleware(this: any, info: {
-  bound: 'server' | 'client',
-  writeType: 'packet' | 'rawPacket' | 'channel',
-  meta: PacketMeta
-}, pclient: Client, data: any, cancel: () => void): void | Promise<void> {
-  if ((info.bound === 'client' && (pclient.toClientBlackList ?? this.options.toClientBlackList).includes(data.name)) 
-    || (info.bound === 'server' && (pclient.toServerBlackList ?? this.options.toServerBlackList).includes(data.name))) cancel()
-}
-
 export class Conn {
   options: ConnOptions;
   bot: Bot & { recipes: number[] };
-  pclient: Client | undefined;
+  writingPclient: Client | undefined;
+  receivingPclients: Client[] = [];
   pclients: Client[] = [];
-  toClientMiddleware?: PacketMiddleware = undefined;
-  toServerMiddleware?: PacketMiddleware = undefined;
+  toClientDefaultMiddleware?: PacketMiddleware = undefined;
+  toServerDefaultMiddleware?: PacketMiddleware = undefined;
   write: (name: string, data: any) => void = () => {};
   writeRaw: (buffer: any) => void = () => {};
   writeChannel: (channel: any, params: any) => void = () => {};
@@ -66,24 +58,10 @@ export class Conn {
     this.write = this.bot._client.write.bind(this.bot._client);
     this.writeRaw = this.bot._client.writeRaw.bind(this.bot._client);
     this.writeChannel = this.bot._client.writeChannel.bind(this.bot._client);
-    if (options?.toClientMiddleware) this.toClientMiddleware = options.toClientMiddleware;
-    if (options?.toServerMiddleware) this.toServerMiddleware = options.toServerMiddleware;
+    if (options?.toClientMiddleware) this.toClientDefaultMiddleware = options.toClientMiddleware;
+    if (options?.toServerMiddleware) this.toServerDefaultMiddleware = options.toServerMiddleware;
+
     this.bot._client.on('packet', async (data, meta) => {
-      //* relay packet to all connected clients
-      if (!this.options.toClientBlackList.includes(meta.name)) {
-        for (const pclient of this.pclients) {
-          const middleware = this.toClientMiddleware ?? pclient.toClientMiddleware ?? DefaultMiddleware
-          let isCanceled = false;
-          const funcReturn = middleware({ bound: 'client', meta, writeType: 'packet' }, pclient, data, () => {
-            isCanceled = true;
-          })
-          if (funcReturn instanceof Promise) {
-            await funcReturn
-          }
-          if (!isCanceled) pclient.write(meta.name, data);
-        }
-      }
-      
       //* entity metadata tracking
       if (data.metadata && data.entityId && this.bot.entities[data.entityId]) (this.bot.entities[data.entityId] as any).rawMetadata = data.metadata;
 
@@ -111,44 +89,149 @@ export class Conn {
           this.bot.physicsEnabled = !!((data.flags & 0b10) ^ 0b10);
           break;
       }
+
+      //* relay packet to all connected clients
+      for (const pclient of this.receivingPclients) {
+        let isCanceled = false;
+        for (const middleware of pclient.toClientMiddlewares) {
+          const funcReturn = middleware({ bound: 'client', meta, writeType: 'packet' }, pclient, data, () => {
+            isCanceled = true;
+          })
+          if (funcReturn instanceof Promise) {
+            await funcReturn
+          }
+          if (!isCanceled) continue;
+          else break;
+        }
+        if (!isCanceled) pclient.write(meta.name, data);
+      }
     });
-    this.options.events = [...defaultEvents, ...this.options.events];
+    // this.options.events = [...defaultEvents, ...this.options.events];
+  }
+
+  /**
+   * Register middleware to be used as client to server middleware.
+   * @param pclient Client
+   */
+  _serverClientDefaultMiddleware(pclient: Client) {
+    if (!pclient.toClientMiddlewares) pclient.toClientMiddlewares = []
+    pclient.toClientMiddlewares.push((info: {
+      bound: 'server' | 'client',
+      writeType: 'packet' | 'rawPacket' | 'channel',
+      meta: PacketMeta
+    }, pclient: Client, data: any, cancel: () => void) => {
+      if (!this.pclients.includes(pclient)) return cancel()
+    })
+    // (conn, pclient) => ['end', () => conn.detach(pclient)],
+    // (conn, pclient) => ['error', () => conn.detach(pclient)],
+  }
+
+  /**
+   * Register the default (first) middleware used to control what client can interact with the current bot.
+   * @param pclient Client
+   */
+  _clientServerDefaultMiddleware(pclient: Client) {
+    if (!pclient.toServerMiddlewares) pclient.toServerMiddlewares = []
+    pclient.toServerMiddlewares.push((info: {
+      bound: 'server' | 'client',
+      writeType: 'packet' | 'rawPacket' | 'channel',
+      meta: PacketMeta
+    }, pclient: Client, data: any, cancel: () => void) => {
+      const name = info.meta.name
+      //* check if client is authorized to modify connection (sending packets and state information from mineflayer)
+      if (this.writingPclient !== pclient) return cancel()
+      //* relay packet
+      this.write(name, data);
+      //* keep mineflayer info up to date
+      switch (name) {
+        case 'position':
+          this.bot.entity.position.x = data.x;
+          this.bot.entity.position.y = data.y;
+          this.bot.entity.position.z = data.z;
+          this.bot.entity.onGround = data.onGround;
+          break;
+        case 'position_look': // FALLTHROUGH
+          this.bot.entity.position.x = data.x;
+          this.bot.entity.position.y = data.y;
+          this.bot.entity.position.z = data.z;
+        case 'look':
+          this.bot.entity.yaw = ((180 - data.yaw) * Math.PI) / 180;
+          this.bot.entity.pitch = -(data.pitch * Math.PI) / 180;
+          this.bot.entity.onGround = data.onGround;
+          break;
+        case 'held_item_slot':
+          this.bot.quickBarSlot = data.slotId;
+          break;
+        case 'abilities':
+          this.bot.physicsEnabled = !!((data.flags & 0b10) ^ 0b10);
+          break;
+        }
+    })
+  }
+
+  /**
+   * Register new pclient (connection coming from mc-protocol server) to the list of pclient.
+   * @param pclient 
+   * @param options 
+   */
+  registerNewPClient(pclient: Client, options?: { toClientMiddleware?: PacketMiddleware, toServerMiddleware?: PacketMiddleware }) {
+    this._clientServerDefaultMiddleware(pclient)
+    this._serverClientDefaultMiddleware(pclient)
+    this.pclients.push(pclient);
+    pclient.on('end', () => {
+      this.unregisterPClient(pclient)
+    })
+    // this.options.events.map(customizeClientEvents(this, pclient)).forEach(([event, listener]) => pclient.on(event, listener));
+    if (options?.toClientMiddleware) pclient.toClientMiddlewares.push(options.toClientMiddleware)
+    if (options?.toServerMiddleware) pclient.toServerMiddlewares.push(options.toServerMiddleware)
+  }
+
+  unregisterPClient(pclient: Client) {
+    this.pclients = this.pclients.filter(c => c !== pclient)
+    this.receivingPclients = this.receivingPclients.filter(c => c !== pclient)
+    if (this.writingPclient === pclient) this.unlink()
   }
 
   //* generates and sends packets suitable to a client
   sendPackets(pclient: Client) {
+    console.info('sendPackets')
     this.generatePackets(pclient).forEach((packet) => pclient.write(...packet));
   }
   //* generates packets ([if provided] suitable to a client)
   generatePackets(pclient?: Client): Packet[] {
-    let a =generatePackets(this.bot, pclient);
+    let a = generatePackets(this.bot, pclient)
     // for (const packet of a ) {
     //   console.log(packet);
     // }
-    return a;
+    return a
   }
 
   //* attaching means receiving all packets from the server
-  attach(pclient: Client, options?: { toClientMiddleware?: PacketMiddleware }) {
+  attach(pclient: Client, options?: { toClientMiddleware?: PacketMiddleware, toServerMiddleware?: PacketMiddleware }) {
+    console.info('Attach')
     if (!this.pclients.includes(pclient)) {
-      if (options && options.toClientMiddleware) pclient.toClientMiddleware = options.toClientMiddleware;
-      this.pclients.push(pclient);
-      this.options.events.map(customizeClientEvents(this, pclient)).forEach(([event, listener]) => pclient.on(event, listener));
+      this.registerNewPClient(pclient, options)
+      // if (options && options.toClientMiddleware) pclient.toClientMiddleware = options.toClientMiddleware;
+      // this.pclients.push(pclient);
+      // this.options.events.map(customizeClientEvents(this, pclient)).forEach(([event, listener]) => pclient.on(event, listener));
+    }
+    if (!this.receivingPclients.includes(pclient)) {
+      this.receivingPclients.push(pclient)
     }
   }
   //* reverses attaching
   //* a client that isn't attached anymore will no longer receive packets from the server
   //* if the client was the main client, it will also be unlinked.
   detach(pclient: Client) {
-    this.pclients = this.pclients.filter((client) => client !== pclient);
-    this.options.events.map(customizeClientEvents(this, pclient)).forEach(([event, listener]) => pclient.removeListener(event, listener));
-    if (this.pclient === pclient) this.unlink();
+    this.receivingPclients = this.pclients.filter((client) => client !== pclient);
+    // this.options.events.map(customizeClientEvents(this, pclient)).forEach(([event, listener]) => pclient.removeListener(event, listener));
+    if (this.writingPclient === pclient) this.unlink();
   }
 
   //* linking means being the main client on the connection, being able to write to the server
   //* if not previously attached, this will do so.
   link(pclient: Client, options?: { toClientMiddleware?: PacketMiddleware }) {
-    this.pclient = pclient;
+    this.writingPclient = pclient;
     this.bot._client.write = this.writeIf.bind(this);
     this.bot._client.writeRaw = () => {};
     this.bot._client.writeChannel = () => {};
@@ -157,11 +240,11 @@ export class Conn {
   //* reverses linking
   //* doesn't remove the client from the pclients array, it is still attached
   unlink() {
-    if (this.pclient) {
+    if (this.writingPclient) {
       this.bot._client.write = this.write.bind(this.bot._client);
       this.bot._client.writeRaw = this.writeRaw.bind(this.bot._client);
       this.bot._client.writeChannel = this.writeChannel.bind(this.bot._client);
-      this.pclient = undefined;
+      this.writingPclient = undefined;
     }
   }
 
@@ -172,7 +255,7 @@ export class Conn {
   //* disconnect from the server and ends, detaches all pclients
   disconnect() {
     this.bot._client.end('conn: disconnect called');
-    this.pclients.forEach(this.detach.bind(this));
+    this.receivingPclients.forEach(this.detach.bind(this));
   }
 }
 
@@ -187,7 +270,7 @@ const defaultEvents: ClientEvents = [
     'packet',
     (data, { name }, buffer) => {
       //* check if client is authorized to modify connection (sending packets and state information from mineflayer)
-      if (pclient.toServerWhiteList?.includes(name) || (conn.pclient === pclient && !(pclient.toServerBlackList ?? conn.options.toServerBlackList).includes(name))) {
+      if (pclient.toServerWhiteList?.includes(name) || (conn.writingPclient === pclient && !(pclient.toServerBlackList ?? conn.options.toServerBlackList).includes(name))) {
         //* relay packet
         conn.writeRaw(buffer);
         //* keep mineflayer info up to date
