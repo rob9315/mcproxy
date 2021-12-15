@@ -37,7 +37,7 @@ export interface PacketMiddleware {
     bound: 'server' | 'client',
     writeType: 'packet' | 'rawPacket' | 'channel',
     meta: PacketMeta
-  }, pclient: Client, data: any, cancel: () => void): void | Promise<void>;
+  }, pclient: Client, data: any, cancel: () => void, isCanceled: boolean): void | Promise<void>;
 }
 
 export class Conn {
@@ -96,12 +96,10 @@ export class Conn {
         for (const middleware of pclient.toClientMiddlewares) {
           const funcReturn = middleware({ bound: 'client', meta, writeType: 'packet' }, pclient, data, () => {
             isCanceled = true;
-          })
+          }, isCanceled)
           if (funcReturn instanceof Promise) {
             await funcReturn
           }
-          if (!isCanceled) continue;
-          else break;
         }
         if (!isCanceled) pclient.write(meta.name, data);
       }
@@ -120,7 +118,7 @@ export class Conn {
       writeType: 'packet' | 'rawPacket' | 'channel',
       meta: PacketMeta
     }, pclient: Client, data: any, cancel: () => void) => {
-      if (!this.pclients.includes(pclient)) return cancel()
+      if (!this.receivingPclients.includes(pclient)) return cancel()
     })
     // (conn, pclient) => ['end', () => conn.detach(pclient)],
     // (conn, pclient) => ['error', () => conn.detach(pclient)],
@@ -132,16 +130,28 @@ export class Conn {
    */
   _clientServerDefaultMiddleware(pclient: Client) {
     if (!pclient.toServerMiddlewares) pclient.toServerMiddlewares = []
-    pclient.toServerMiddlewares.push((info: {
+    function defaultClientServerMiddleware(this: any, info: {
       bound: 'server' | 'client',
       writeType: 'packet' | 'rawPacket' | 'channel',
       meta: PacketMeta
-    }, pclient: Client, data: any, cancel: () => void) => {
+    }, pclient: Client, data: any, cancel: () => void, isCanceled: boolean) {
       const name = info.meta.name
       //* check if client is authorized to modify connection (sending packets and state information from mineflayer)
-      if (this.writingPclient !== pclient) return cancel()
-      //* relay packet
-      this.write(name, data);
+      if (info.meta.name === 'teleport_confirm' && data?.teleportId === 0) {
+        pclient.write('position', {
+          ...this.bot.entity.position,
+          yaw: 180 - (this.bot.entity.yaw * 180) / Math.PI,
+          pitch: -(this.bot.entity.pitch * 180) / Math.PI,
+          teleportId: 1
+        })
+        cancel()
+      }
+      if (this.writingPclient !== pclient) {
+        // console.info(info.meta.name, 'Client -> Server Canceled')
+        return cancel()
+      }
+      if (info.meta.name === 'keep_alive') cancel()
+      // console.info(info.meta.name, 'Client -> Server not Canceled', this.writingPclient, pclient)
       //* keep mineflayer info up to date
       switch (name) {
         case 'position':
@@ -165,8 +175,9 @@ export class Conn {
         case 'abilities':
           this.bot.physicsEnabled = !!((data.flags & 0b10) ^ 0b10);
           break;
-        }
-    })
+      }
+    }
+    pclient.toServerMiddlewares.push(defaultClientServerMiddleware.bind(this))
   }
 
   /**
@@ -181,9 +192,29 @@ export class Conn {
     pclient.on('end', () => {
       this.unregisterPClient(pclient)
     })
-    // this.options.events.map(customizeClientEvents(this, pclient)).forEach(([event, listener]) => pclient.on(event, listener));
+    pclient.on('packet', async (data, meta) => {
+      let isCanceled = false;
+      for (const middleware of pclient.toServerMiddlewares) {
+        const funcReturn = middleware({ bound: 'server', meta, writeType: 'packet' }, pclient, data, () => {
+          isCanceled = true;
+        }, isCanceled)
+        if (funcReturn instanceof Promise) {
+          await funcReturn
+        }
+      }
+      if (!isCanceled) {
+        //* relay packet
+        this.write(meta.name, data);
+      }
+    })
     if (options?.toClientMiddleware) pclient.toClientMiddlewares.push(options.toClientMiddleware)
-    if (options?.toServerMiddleware) pclient.toServerMiddlewares.push(options.toServerMiddleware)
+    if (options?.toServerMiddleware) {
+      console.info('Added additional toServer middleware')
+      pclient.toServerMiddlewares.push(options.toServerMiddleware)
+      console.info(pclient.toServerMiddlewares)
+    } else {
+      console.info('no additional to server middleware')
+    }
   }
 
   unregisterPClient(pclient: Client) {
@@ -199,7 +230,6 @@ export class Conn {
   }
   //* generates packets ([if provided] suitable to a client)
   generatePackets(pclient?: Client): Packet[] {
-    console.info('generatePackets')
     return generatePackets(this.bot, pclient);
   }
 
