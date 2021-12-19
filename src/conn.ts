@@ -37,7 +37,7 @@ export interface PacketMiddleware {
     bound: 'server' | 'client',
     writeType: 'packet' | 'rawPacket' | 'channel',
     meta: PacketMeta
-  }, pclient: Client, data: any, cancel: () => void, isCanceled: boolean): void | Promise<void>;
+  }, pclient: Client, data: any, cancel: (unCancel?: boolean) => void, isCanceled: boolean): void | Promise<void>;
 }
 
 export class Conn {
@@ -61,35 +61,44 @@ export class Conn {
     if (options?.toClientMiddleware) this.toClientDefaultMiddleware = options.toClientMiddleware;
     if (options?.toServerMiddleware) this.toServerDefaultMiddleware = options.toServerMiddleware;
 
-    this.bot._client.on('packet', async (data, meta) => {
-      //* entity metadata tracking
-      if (data.metadata && data.entityId && this.bot.entities[data.entityId]) (this.bot.entities[data.entityId] as any).rawMetadata = data.metadata;
+    this.bot._client.on('packet', this._handleBotPackets);
+    // this.options.events = [...defaultEvents, ...this.options.events];
+  }
 
-      //* recipe tracking https://wiki.vg/index.php?title=Protocol&oldid=14204#Unlock_Recipes
-      switch (meta.name) {
-        case 'unlock_recipes':
-          switch (data.action) {
-            case 0: //* initialize
-              this.bot.recipes = data.recipes1;
-              break;
-            case 1: //* add
-              this.bot.recipes = [...this.bot.recipes, ...data.recipes1];
-              break;
-            case 2: //* remove
-              this.bot.recipes = Array.from(
-                (data.recipes1 as number[]).reduce((recipes, recipe) => {
-                  recipes.delete(recipe);
-                  return recipes;
-                }, new Set(this.bot.recipes))
-              );
-              break;
-          }
-          break;
-        case 'abilities':
-          this.bot.physicsEnabled = !!((data.flags & 0b10) ^ 0b10);
-          break;
-      }
+  /**
+   * Handle packets send by the bot or the connected client. If no clients are controlling the connection at the 
+   * moment forward the packets to the server. Otherwise do nothing and let connected clients send packets.
+   */
+  _handleBotPackets(data: any, meta: PacketMeta) {
+    //* entity metadata tracking
+    if (data.metadata && data.entityId && this.bot.entities[data.entityId]) (this.bot.entities[data.entityId] as any).rawMetadata = data.metadata;
 
+    //* recipe tracking https://wiki.vg/index.php?title=Protocol&oldid=14204#Unlock_Recipes
+    switch (meta.name) {
+      case 'unlock_recipes':
+        switch (data.action) {
+          case 0: //* initialize
+            this.bot.recipes = data.recipes1;
+            break;
+          case 1: //* add
+            this.bot.recipes = [...this.bot.recipes, ...data.recipes1];
+            break;
+          case 2: //* remove
+            this.bot.recipes = Array.from(
+              (data.recipes1 as number[]).reduce((recipes, recipe) => {
+                recipes.delete(recipe);
+                return recipes;
+              }, new Set(this.bot.recipes))
+            );
+            break;
+        }
+        break;
+      case 'abilities':
+        this.bot.physicsEnabled = !!((data.flags & 0b10) ^ 0b10);
+        break;
+    }
+
+    const sendPackets = async () => {
       //* relay packet to all connected clients
       for (const pclient of this.receivingPclients) {
         let isCanceled = false;
@@ -103,8 +112,9 @@ export class Conn {
         }
         if (!isCanceled) pclient.write(meta.name, data);
       }
-    });
-    // this.options.events = [...defaultEvents, ...this.options.events];
+    }
+    sendPackets()
+      .catch(console.error)
   }
 
   /**
@@ -195,8 +205,10 @@ export class Conn {
     pclient.on('packet', async (data, meta) => {
       let isCanceled = false;
       for (const middleware of pclient.toServerMiddlewares) {
-        const funcReturn = middleware({ bound: 'server', meta, writeType: 'packet' }, pclient, data, () => {
-          isCanceled = true;
+        const funcReturn = middleware({ bound: 'server', meta, writeType: 'packet' }, pclient, data, (v?: boolean) => {
+          if (v === false) {
+            isCanceled = false
+          } else isCanceled = true;
         }, isCanceled)
         if (funcReturn instanceof Promise) {
           await funcReturn
