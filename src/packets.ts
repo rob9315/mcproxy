@@ -5,6 +5,11 @@ import { Vec3 } from 'vec3';
 
 const MAX_CHUNK_DATA_LENGTH = 31598;
 
+export type PacketTuple = {
+  name: string,
+  data: any
+}
+
 export const dimension: Record<string, number> = {
   'minecraft:end': 1,
   'minecraft:overworld': 0,
@@ -24,6 +29,23 @@ export const difficulty: Record<string, number> = {
   normal: 2,
   hard: 3,
 };
+
+export function packetAbilities(bot: Bot): PacketTuple {
+  return {
+    name: 'abilities',
+    data: {
+      flags: (bot.physicsEnabled ? 0b0 : 0b10) | ([1, 3].includes(bot.player.gamemode) ? 0b0 : 0b100) | (bot.player.gamemode !== 1 ? 0b0 : 0b1000),
+      flyingSpeed: 0.05,
+      walkingSpeed: 0.1,
+    }
+  }
+}
+
+export function sendTo(pclient: Client, ...args: PacketTuple[]) {
+  for (const a of args) {
+    pclient.write(a.name, a.data)
+  }
+}
 
 export function generatePackets(bot: Bot & { recipes: number[] }, pclient?: Client): Packet[] {
   //* if not spawned yet, return nothing
