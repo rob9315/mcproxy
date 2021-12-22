@@ -55,13 +55,15 @@ export class Conn {
     this.options = { ...new ConnOptions(), ...options };
     this.bot = createBot(botOptions) as any;
     this.bot.recipes = [];
+    this.receivingPclients = [];
+    this.pclients = [];
     this.write = this.bot._client.write.bind(this.bot._client);
     this.writeRaw = this.bot._client.writeRaw.bind(this.bot._client);
     this.writeChannel = this.bot._client.writeChannel.bind(this.bot._client);
     if (options?.toClientMiddleware) this.toClientDefaultMiddleware = options.toClientMiddleware;
     if (options?.toServerMiddleware) this.toServerDefaultMiddleware = options.toServerMiddleware;
 
-    this.bot._client.on('packet', this._handleBotPackets);
+    this.bot._client.on('packet', this._handleBotPackets.bind(this));
     // this.options.events = [...defaultEvents, ...this.options.events];
   }
 
