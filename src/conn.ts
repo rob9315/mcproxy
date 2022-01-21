@@ -142,11 +142,11 @@ function customizeClientEvents(conn: Conn, pclient: Client) {
 const defaultEvents: ClientEvents = [
   (conn, pclient) => [
     'packet',
-    (data, { name }) => {
+    (data, { name }, buffer) => {
       //* check if client is authorized to modify connection (sending packets and state information from mineflayer)
       if (pclient.toServerWhiteList?.includes(name) || (conn.pclient === pclient && !(pclient.toServerBlackList ?? conn.options.toServerBlackList).includes(name))) {
         //* relay packet
-        conn.write(name, data);
+        conn.writeRaw(buffer);
         //* keep mineflayer info up to date
         switch (name) {
           case 'position':
