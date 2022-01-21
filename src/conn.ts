@@ -41,10 +41,10 @@ export class Conn {
     this.write = this.bot._client.write.bind(this.bot._client);
     this.writeRaw = this.bot._client.writeRaw.bind(this.bot._client);
     this.writeChannel = this.bot._client.writeChannel.bind(this.bot._client);
-    this.bot._client.on('packet', (data, { name }) => {
+    this.bot._client.on('packet', (data, { name }, buffer) => {
       //* relay packet to all connected clients
       this.pclients.forEach((pclient) => {
-        if (!(pclient.toClientBlackList ?? this.options.toClientBlackList).includes(name)) pclient.write(name, data);
+        if (!(pclient.toClientBlackList ?? this.options.toClientBlackList).includes(name)) pclient.writeRaw(buffer);
       });
       //* entity metadata tracking
       if (data.metadata && data.entityId && this.bot.entities[data.entityId]) (this.bot.entities[data.entityId] as any).rawMetadata = data.metadata;
@@ -142,11 +142,11 @@ function customizeClientEvents(conn: Conn, pclient: Client) {
 const defaultEvents: ClientEvents = [
   (conn, pclient) => [
     'packet',
-    (data, { name }) => {
+    (data, { name }, buffer) => {
       //* check if client is authorized to modify connection (sending packets and state information from mineflayer)
       if (pclient.toServerWhiteList?.includes(name) || (conn.pclient === pclient && !(pclient.toServerBlackList ?? conn.options.toServerBlackList).includes(name))) {
         //* relay packet
-        conn.write(name, data);
+        conn.writeRaw(buffer);
         //* keep mineflayer info up to date
         switch (name) {
           case 'position':
