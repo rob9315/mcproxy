@@ -32,12 +32,20 @@ export class ConnOptions {
   toServerMiddleware?: PacketMiddleware = (): void | Promise<void> => {}
 }
 
+export interface packetCanceler {
+  /** Has property .isCanceled: boolean indicating if the packet has been canceled by another middleware.
+   * Use `cancel(false)` to un-cancel the packet again.
+   */
+  (unCancel?: boolean): void
+  isCanceled: boolean
+} 
+
 export interface PacketMiddleware {
   (info: {
     bound: 'server' | 'client',
     writeType: 'packet' | 'rawPacket' | 'channel',
     meta: PacketMeta
-  }, pclient: Client, data: any, cancel: (unCancel?: boolean) => void, isCanceled: boolean): void | Promise<void>;
+  }, pclient: Client, data: any, cancel: packetCanceler): void | Promise<void>;
 }
 
 export class Conn {
@@ -63,15 +71,17 @@ export class Conn {
     if (options?.toClientMiddleware) this.toClientDefaultMiddleware = options.toClientMiddleware;
     if (options?.toServerMiddleware) this.toServerDefaultMiddleware = options.toServerMiddleware;
 
-    this.bot._client.on('packet', this._handleBotPackets.bind(this));
+    this.bot._client.on('packet', this.onServerPacket.bind(this));
     // this.options.events = [...defaultEvents, ...this.options.events];
   }
 
   /**
-   * Handle packets send by the bot or the connected client. If no clients are controlling the connection at the 
-   * moment forward the packets to the server. Otherwise do nothing and let connected clients send packets.
+   * Handles Packets send by the server
+   * @param data Packet data
+   * @param meta Packet meta
    */
-  _handleBotPackets(data: any, meta: PacketMeta) {
+  onServerPacket(data: any, meta: PacketMeta, buffer: Buffer) {
+    // Packet saving for world persistance
     //* entity metadata tracking
     if (data.metadata && data.entityId && this.bot.entities[data.entityId]) (this.bot.entities[data.entityId] as any).rawMetadata = data.metadata;
 
@@ -103,19 +113,60 @@ export class Conn {
     const sendPackets = async () => {
       //* relay packet to all connected clients
       for (const pclient of this.receivingPclients) {
-        let isCanceled = false;
+        // Build packet canceler function used by middleware
+        const cancel: packetCanceler = Object.assign((unCancel: boolean = false) => {
+          if (unCancel === false) {
+            cancel.isCanceled = false
+          }
+          cancel.isCanceled = true
+        }, { isCanceled: false })
+
         for (const middleware of pclient.toClientMiddlewares) {
-          const funcReturn = middleware({ bound: 'client', meta, writeType: 'packet' }, pclient, data, () => {
-            isCanceled = true;
-          }, isCanceled)
+          const funcReturn = middleware({ bound: 'client', meta, writeType: 'packet' }, pclient, data, cancel)
           if (funcReturn instanceof Promise) {
             await funcReturn
           }
         }
-        if (!isCanceled) pclient.write(meta.name, data);
+        if (cancel.isCanceled === false) {
+          // TODO: figure out what packet is breaking crafting on 2b2t
+          // pclient.write(meta.name, data);
+          pclient.writeRaw(buffer);
+        }
       }
     }
     sendPackets()
+      .catch(console.error)
+  }
+
+  /**
+   * Handles packets send by a client
+   * @param data Packet data
+   * @param meta Packet Meta
+   * @param pclient Sending Client
+   */
+  onClientPacket(data: any, meta: PacketMeta, buffer: Buffer, pclient: Client) {
+    const handle = async () => {
+      // Build packet canceler function used by middleware
+      const cancel: packetCanceler = Object.assign((unCancel: boolean = false) => {
+        if (unCancel === false) {
+          cancel.isCanceled = false
+        }
+        cancel.isCanceled = true
+      }, { isCanceled: false })
+      for (const middleware of pclient.toServerMiddlewares) {
+
+        const funcReturn = middleware({ bound: 'server', meta, writeType: 'packet' }, pclient, data, cancel)
+        if (funcReturn instanceof Promise) {
+          await funcReturn
+        }
+      }
+      if (cancel.isCanceled === false) {
+        // TODO: figure out what packet is breaking crafting on 2b2t
+        // this.write(meta.name, data);
+        this.writeRaw(buffer)
+      }
+    }
+    handle()
       .catch(console.error)
   }
 
@@ -129,7 +180,7 @@ export class Conn {
       bound: 'server' | 'client',
       writeType: 'packet' | 'rawPacket' | 'channel',
       meta: PacketMeta
-    }, pclient: Client, data: any, cancel: () => void) => {
+    }, pclient: Client, data: any, cancel: packetCanceler) => {
       if (!this.receivingPclients.includes(pclient)) return cancel()
     })
     // (conn, pclient) => ['end', () => conn.detach(pclient)],
@@ -146,7 +197,7 @@ export class Conn {
       bound: 'server' | 'client',
       writeType: 'packet' | 'rawPacket' | 'channel',
       meta: PacketMeta
-    }, pclient: Client, data: any, cancel: () => void, isCanceled: boolean) {
+    }, pclient: Client, data: any, cancel: packetCanceler) {
       const name = info.meta.name
       //* check if client is authorized to modify connection (sending packets and state information from mineflayer)
       if (info.meta.name === 'teleport_confirm' && data?.teleportId === 0) {
@@ -204,23 +255,7 @@ export class Conn {
     pclient.on('end', () => {
       this.unregisterPClient(pclient)
     })
-    pclient.on('packet', async (data, meta) => {
-      let isCanceled = false;
-      for (const middleware of pclient.toServerMiddlewares) {
-        const funcReturn = middleware({ bound: 'server', meta, writeType: 'packet' }, pclient, data, (v?: boolean) => {
-          if (v === false) {
-            isCanceled = false
-          } else isCanceled = true;
-        }, isCanceled)
-        if (funcReturn instanceof Promise) {
-          await funcReturn
-        }
-      }
-      if (!isCanceled) {
-        //* relay packet
-        this.write(meta.name, data);
-      }
-    })
+    pclient.on('packet', (data, meta, buffer) => this.onClientPacket(data, meta, buffer, pclient))
     if (options?.toClientMiddleware) pclient.toClientMiddlewares.push(options.toClientMiddleware)
     if (options?.toServerMiddleware) {
       console.info('Added additional toServer middleware')
@@ -231,9 +266,15 @@ export class Conn {
     }
   }
 
+  /**
+   * Un-register a client. 
+   * Assume .end() was called on pclient. Don't send any more packets and don't listen for any new packets received.
+   * @param pclient Client
+   */
   unregisterPClient(pclient: Client) {
     this.pclients = this.pclients.filter(c => c !== pclient)
     this.receivingPclients = this.receivingPclients.filter(c => c !== pclient)
+    pclient.removeAllListeners('packet')
     if (this.writingPclient === pclient) this.unlink()
   }
 
@@ -302,12 +343,6 @@ export class Conn {
     this.bot._client.end('conn: disconnect called');
     this.receivingPclients.forEach(this.detach.bind(this));
   }
-}
-
-function customizeClientEvents(conn: Conn, pclient: Client) {
-  return function (clientEvent: ClientEventTuple | ((conn: Conn, pclient: Client) => ClientEventTuple)) {
-    return typeof clientEvent === 'function' ? clientEvent(conn, pclient) : clientEvent;
-  };
 }
 
 const defaultEvents: ClientEvents = [
