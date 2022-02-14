@@ -1,6 +1,6 @@
 {
   "name": "@rob9315/mcproxy",
-  "version": "0.2.4",
+  "version": "0.3.0",
   "description": "a minecraft proxy library powered by mineflayer",
   "keywords": [
     "minecraft",
