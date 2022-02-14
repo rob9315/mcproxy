@@ -1,8 +1,9 @@
 ## custom additions
 
 # lockfiles because they cause trouble often
-package-lock.json
-yarn.lock
+# on second thought, don't so dependencies don't break randomly
+# package-lock.json
+# yarn.lock
 
 # compiled js files
 lib/
