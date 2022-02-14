@@ -1,6 +1,7 @@
 import type { Bot } from 'mineflayer';
 import type { Client, Packet } from './conn';
 import { SmartBuffer } from 'smart-buffer';
+import { Vec3 } from 'vec3';
 
 const MAX_CHUNK_DATA_LENGTH = 31598;
 
@@ -163,30 +164,9 @@ export function generatePackets(bot: Bot & { recipes: number[] }, pclient?: Clie
       }
       return packets;
     }, []),
-    ...(bot.world.getColumns() as any[]).reduce<Packet[]>((packets, chunk) => [...packets, ...chunkColumnToPackets(chunk)], []),
+    ...(bot.world.getColumns() as any[]).reduce<Packet[]>((packets, chunk) => [...packets, ...chunkColumnToPackets(bot, chunk)], []),
     //? `world_border` (as of 1.12.2) => really needed?
-    //* block entities
-    ...Object.values((bot as any)._blockEntities as Map<string, { x: number; y: number; z: number; raw: Object }>).reduce((packets, { x, y, z, raw: nbtData }) => {
-      packets.push([
-        'tile_entity_data',
-        {
-          location: { x, y, z },
-          nbtData,
-        },
-      ]);
-      let block = bot.blockAt(Vec3({ x, y, z }));
-      if (block?.name.includes('chest'))
-        packets.push([
-          'block_action',
-          {
-            location: { x, y, z },
-            byte1: 1,
-            byte2: 0,
-            blockId: block.type,
-          },
-        ]);
-      return packets;
-    }, []),
+    //! block entities moved to chunk packet area
     ...Object.values(bot.entities).reduce<Packet[]>((packets, entity) => {
       switch (entity.type) {
         case 'orb':
@@ -271,15 +251,24 @@ export function generatePackets(bot: Bot & { recipes: number[] }, pclient?: Clie
   ] as Packet[];
 }
 
+type NbtPositionTag = { type: 'int'; value: number };
+type BlockEntity = { x: NbtPositionTag; y: NbtPositionTag; z: NbtPositionTag; id: object };
+type ChunkEntity = { name: string; type: string; value: BlockEntity };
 //* splits a single chunk column into multiple packets if needed
 function chunkColumnToPackets(
+  bot: Bot,
   { chunkX: x, chunkZ: z, column }: { chunkX: number; chunkZ: number; column: any },
   lastBitMask?: number,
-  chunkData: SmartBuffer = new SmartBuffer()
+  chunkData: SmartBuffer = new SmartBuffer(),
+  chunkEntities: ChunkEntity[] = []
 ): Packet[] {
   let bitMask = !!lastBitMask ? column.getMask() ^ (column.getMask() & ((lastBitMask << 1) - 1)) : column.getMask();
   let bitMap = lastBitMask ?? 0b0;
   let newChunkData = new SmartBuffer();
+
+  // blockEntities
+  // chunkEntities.push(...Object.values(column.blockEntities as Map<string, ChunkEntity>));
+
   // checks with bitmask if there is a chunk in memory that (a) exists and (b) was not sent to the client yet
   for (let i = 0; i < 16; i++)
     if (bitMask & (0b1 << i)) {
@@ -289,7 +278,8 @@ function chunkColumnToPackets(
         if (!lastBitMask) column.biomes?.forEach((biome: number) => chunkData.writeUInt8(biome));
         return [
           ['map_chunk', { x, z, bitMap, chunkData: chunkData.toBuffer(), groundUp: !lastBitMask, blockEntities: [] }],
-          ...chunkColumnToPackets({ chunkX: x, chunkZ: z, column }, 0b1 << i, newChunkData),
+          ...chunkColumnToPackets(bot, { chunkX: x, chunkZ: z, column }, 0b1 << i, newChunkData),
+          ...getChunkEntityPackets(bot, column.blockEntities),
         ];
       }
       bitMap ^= 0b1 << i;
@@ -297,5 +287,23 @@ function chunkColumnToPackets(
       newChunkData.clear();
     }
   if (!lastBitMask) column.biomes?.forEach((biome: number) => chunkData.writeUInt8(biome));
-  return [['map_chunk', { x, z, bitMap, chunkData: chunkData.toBuffer(), groundUp: !lastBitMask, blockEntities: [] }]];
+  return [['map_chunk', { x, z, bitMap, chunkData: chunkData.toBuffer(), groundUp: !lastBitMask, blockEntities: [] }], ...getChunkEntityPackets(bot, column.blockEntities)];
+}
+
+function getChunkEntityPackets(bot: Bot, blockEntities: { [pos: string]: ChunkEntity }) {
+  const packets: Packet[] = [];
+  for (const nbtData of Object.values(blockEntities)) {
+    const {
+      x: { value: x },
+      y: { value: y },
+      z: { value: z },
+    } = nbtData.value;
+    const location = { x, y, z };
+    packets.push(['tile_entity_data', { location, nbtData }]);
+    const block = bot.blockAt(new Vec3(x, y, z));
+    if (block?.name == 'minecraft:chest') {
+      packets.push(['block_action', { location, byte1: 1, byte2: 0, blockId: block.type }]);
+    }
+  }
+  return packets;
 }

@@ -83,7 +83,11 @@ export class Conn {
   }
   //* generates packets ([if provided] suitable to a client)
   generatePackets(pclient?: Client): Packet[] {
-    return generatePackets(this.bot, pclient);
+    let a =generatePackets(this.bot, pclient);
+    // for (const packet of a ) {
+    //   console.log(packet);
+    // }
+    return a;
   }
 
   //* attaching means receiving all packets from the server
