@@ -6,7 +6,7 @@ const minecraft_protocol = require("minecraft-protocol");
 // initialize bot instance like you would with mineflayer
 // https://github.com/PrismarineJS/mineflayer
 let conn = new mcproxy.Conn({
-  username: "test",
+  username: "proxyBot",
   version: "1.12.2",
   host: "localhost",
   port: 25565,
@@ -35,6 +35,10 @@ const server = minecraft_protocol.createServer({
   "online-mode": false,
   port: 25566,
 });
+
+server.on('listening', () => {
+  console.info('Listening on', 25566)
+})
 
 // accept client connections on your server,
 // make sure not to use "connection" instead of "login"
