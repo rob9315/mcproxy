@@ -91,16 +91,16 @@ export function generatePackets(bot: Bot & { recipes: number[] }, pclient?: Clie
     //? tags?
     //? entity status theoretically (current animation playing)
     //? commands / add option to provide own commands
-    [
-      'unlock_recipes',
-      {
-        action: 0,
-        craftingBookOpen: false,
-        filteringCraftable: false,
-        recipes1: bot.recipes,
-        recipes2: bot.recipes,
-      },
-    ],
+    // [
+    //   'unlock_recipes',
+    //   {
+    //     action: 0,
+    //     craftingBookOpen: false,
+    //     filteringCraftable: false,
+    //     recipes1: bot.recipes,
+    //     recipes2: bot.recipes,
+    //   },
+    // ],
     //* gamemode
     ['game_state_change', { reason: 3, gameMode: bot.player.gamemode }],
     [

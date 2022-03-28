@@ -1,6 +1,8 @@
 import { Bot, BotOptions, createBot } from 'mineflayer';
 import type { Client as mcpClient, PacketMeta } from 'minecraft-protocol';
+import { states } from "minecraft-protocol";
 import { generatePackets } from './packets';
+const bufferEqual = require('buffer-equal')
 
 export type Packet = [name: string, data: any];
 
@@ -28,8 +30,8 @@ export class ConnOptions {
   //* filter for all attached clients if it is not overwritten by the client
   toClientBlackList: string[] = ['keep_alive'];
   //* Middleware to control packets being send to the client and server
-  toClientMiddleware?: PacketMiddleware = (): void | Promise<void> => {}
-  toServerMiddleware?: PacketMiddleware = (): void | Promise<void> => {}
+  toClientMiddleware?: PacketMiddleware[] = [() => { }];
+  toServerMiddleware?: PacketMiddleware[] = [() => { }];
 }
 
 export interface packetCanceler {
@@ -54,8 +56,8 @@ export class Conn {
   writingPclient: Client | undefined;
   receivingPclients: Client[] = [];
   pclients: Client[] = [];
-  toClientDefaultMiddleware?: PacketMiddleware = undefined;
-  toServerDefaultMiddleware?: PacketMiddleware = undefined;
+  toClientDefaultMiddleware?: PacketMiddleware[] = undefined;
+  toServerDefaultMiddleware?: PacketMiddleware[] = undefined;
   write: (name: string, data: any) => void = () => {};
   writeRaw: (buffer: any) => void = () => {};
   writeChannel: (channel: any, params: any) => void = () => {};
@@ -71,7 +73,8 @@ export class Conn {
     if (options?.toClientMiddleware) this.toClientDefaultMiddleware = options.toClientMiddleware;
     if (options?.toServerMiddleware) this.toServerDefaultMiddleware = options.toServerMiddleware;
 
-    this.bot._client.on('packet', this.onServerPacket.bind(this));
+    // this.bot._client.on('packet', this.onServerPacket.bind(this));
+    this.bot._client.on('raw', this.onServerRaw.bind(this))
     // this.options.events = [...defaultEvents, ...this.options.events];
   }
 
@@ -138,6 +141,40 @@ export class Conn {
       .catch(console.error)
   }
 
+  async onServerRaw(buffer: Buffer, meta: PacketMeta) {
+    const packetData = this.bot._client.deserializer.parsePacketBuffer(buffer).data.params
+    for (const pclient of this.receivingPclients) {
+      if (pclient.state !== states.PLAY || meta.state !== states.PLAY) { return }
+      // Build packet canceler function used by middleware
+      const cancel: packetCanceler = Object.assign((unCancel: boolean = false) => {
+        if (unCancel === false) {
+          cancel.isCanceled = false
+        }
+        cancel.isCanceled = true
+      }, { isCanceled: false })
+
+      for (const middleware of pclient.toClientMiddlewares) {
+        const funcReturn = middleware({ bound: 'client', meta, writeType: 'packet' }, pclient, packetData, cancel)
+        if (funcReturn instanceof Promise) {
+          await funcReturn
+        }
+      }
+      const packetBuff = pclient.serializer.createPacketBuffer({ name: meta.name, params: packetData })
+      // if (!bufferEqual(buffer, packetBuff)) {
+      //   console.log('client<-server: Error in packet ' + meta.state + '.' + meta.name)
+      //   // console.log('received buffer', buffer.toString('hex'))
+      //   // console.log('produced buffer', packetBuff.toString('hex'))
+      //   console.log('received length', buffer.length)
+      //   console.log('produced length', packetBuff.length)
+      // }
+      if (cancel.isCanceled === false) {
+        // TODO: figure out what packet is breaking crafting on 2b2t
+        // pclient.write(meta.name, data);
+        pclient.writeRaw(packetBuff);
+      }
+    }
+  }
+
   /**
    * Handles packets send by a client
    * @param data Packet data
@@ -161,6 +198,14 @@ export class Conn {
         }
       }
       if (cancel.isCanceled === false) {
+        const packetBuff = pclient.serializer.createPacketBuffer(data)
+        // if (!bufferEqual(buffer, packetBuff)) {
+        //   console.log('server<-client: Error in packet ' + meta.state + '.' + meta.name)
+        //   // console.log('received buffer', buffer.toString('hex'))
+        //   // console.log('produced buffer', packetBuff.toString('hex'))
+        //   console.log('received length', buffer.length)
+        //   console.log('produced length', packetBuff.length)
+        // }
         // TODO: figure out what packet is breaking crafting on 2b2t
         // this.write(meta.name, data);
         this.writeRaw(buffer)
@@ -248,7 +293,7 @@ export class Conn {
    * @param pclient 
    * @param options 
    */
-  registerNewPClient(pclient: Client, options?: { toClientMiddleware?: PacketMiddleware, toServerMiddleware?: PacketMiddleware }) {
+  registerNewPClient(pclient: Client, options?: { toClientMiddleware?: PacketMiddleware[], toServerMiddleware?: PacketMiddleware[] }) {
     this._clientServerDefaultMiddleware(pclient)
     this._serverClientDefaultMiddleware(pclient)
     this.pclients.push(pclient);
@@ -256,10 +301,10 @@ export class Conn {
       this.unregisterPClient(pclient)
     })
     pclient.on('packet', (data, meta, buffer) => this.onClientPacket(data, meta, buffer, pclient))
-    if (options?.toClientMiddleware) pclient.toClientMiddlewares.push(options.toClientMiddleware)
+    if (options?.toClientMiddleware) pclient.toClientMiddlewares.push(...options.toClientMiddleware)
     if (options?.toServerMiddleware) {
       console.info('Added additional toServer middleware')
-      pclient.toServerMiddlewares.push(options.toServerMiddleware)
+      pclient.toServerMiddlewares.push(...options.toServerMiddleware)
       console.info(pclient.toServerMiddlewares)
     } else {
       console.info('no additional to server middleware')
@@ -293,7 +338,7 @@ export class Conn {
   }
 
   //* attaching means receiving all packets from the server
-  attach(pclient: Client, options?: { toClientMiddleware?: PacketMiddleware, toServerMiddleware?: PacketMiddleware }) {
+  attach(pclient: Client, options?: { toClientMiddleware?: PacketMiddleware[], toServerMiddleware?: PacketMiddleware[] }) {
     console.info('Attach')
     if (!this.pclients.includes(pclient)) {
       this.registerNewPClient(pclient, options)
@@ -316,7 +361,7 @@ export class Conn {
 
   //* linking means being the main client on the connection, being able to write to the server
   //* if not previously attached, this will do so.
-  link(pclient: Client, options?: { toClientMiddleware?: PacketMiddleware }) {
+  link(pclient: Client, options?: { toClientMiddleware?: PacketMiddleware[] }) {
     this.writingPclient = pclient;
     this.bot._client.write = this.writeIf.bind(this);
     this.bot._client.writeRaw = () => {};

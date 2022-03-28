@@ -44,8 +44,8 @@ conn.bot.once('spawn', () => {
     conn.sendPackets(client)
     
     conn.link(client, {
-      toClientMiddleware: filterChatMiddleware,
-      toServerMiddleware: fakePingMiddleware
+      toClientMiddleware: [filterChatMiddleware],
+      toServerMiddleware: [fakePingMiddleware]
     })
   })
 })
