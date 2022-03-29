@@ -142,6 +142,7 @@ export class Conn {
   }
 
   async onServerRaw(buffer: Buffer, meta: PacketMeta) {
+    // @ts-ignore-error
     const packetData = this.bot._client.deserializer.parsePacketBuffer(buffer).data.params
     for (const pclient of this.receivingPclients) {
       if (pclient.state !== states.PLAY || meta.state !== states.PLAY) { return }
@@ -159,18 +160,24 @@ export class Conn {
           await funcReturn
         }
       }
-      const packetBuff = pclient.serializer.createPacketBuffer({ name: meta.name, params: packetData })
-      // if (!bufferEqual(buffer, packetBuff)) {
-      //   console.log('client<-server: Error in packet ' + meta.state + '.' + meta.name)
-      //   // console.log('received buffer', buffer.toString('hex'))
-      //   // console.log('produced buffer', packetBuff.toString('hex'))
-      //   console.log('received length', buffer.length)
-      //   console.log('produced length', packetBuff.length)
-      // }
+      // TODO: figure out what packet is breaking crafting on 2b2t
+      // Hint: It is the recipes unlock packet that is send when crafting an item. 
+      // Probably some bad unlocked recipes packet reconstruction on login that is causing packets send after to crash the client.
+      
       if (cancel.isCanceled === false) {
-        // TODO: figure out what packet is breaking crafting on 2b2t
         // pclient.write(meta.name, data);
-        pclient.writeRaw(packetBuff);
+        // @ts-ignore-error
+        const packetBuff = pclient.serializer.createPacketBuffer({ name: meta.name, params: packetData })
+        if (!bufferEqual(buffer, packetBuff)) {
+          console.log('client<-server: Error in packet ' + meta.state + '.' + meta.name + ' This packet is breaking the proxy. Ping @Ic3Tank on NextGen discord')
+          //   // console.log('received buffer', buffer.toString('hex'))
+          //   // console.log('produced buffer', packetBuff.toString('hex'))
+          //   console.log('received length', buffer.length)
+          //   console.log('produced length', packetBuff.length)
+          pclient.writeRaw(buffer);
+        } else {
+          pclient.write(meta.name, packetData);
+        }
       }
     }
   }
@@ -198,17 +205,21 @@ export class Conn {
         }
       }
       if (cancel.isCanceled === false) {
+        // @ts-ignore-error
         const packetBuff = pclient.serializer.createPacketBuffer(data)
-        // if (!bufferEqual(buffer, packetBuff)) {
-        //   console.log('server<-client: Error in packet ' + meta.state + '.' + meta.name)
+        // TODO: figure out what packet is breaking crafting on 2b2t
+        if (!bufferEqual(buffer, packetBuff)) {
+          console.log('server<-client: Error in packet ' + meta.state + '.' + meta.name + ' This packet is breaking the proxy. Ping @Ic3Tank on NextGen discord')
+          this.writeRaw(buffer)
         //   // console.log('received buffer', buffer.toString('hex'))
         //   // console.log('produced buffer', packetBuff.toString('hex'))
         //   console.log('received length', buffer.length)
         //   console.log('produced length', packetBuff.length)
-        // }
-        // TODO: figure out what packet is breaking crafting on 2b2t
+        } else {
+          this.write(meta.name, data)
+        }
         // this.write(meta.name, data);
-        this.writeRaw(buffer)
+        // this.writeRaw(buffer)
       }
     }
     handle()
