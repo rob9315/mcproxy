@@ -40,15 +40,22 @@ export interface packetCanceler {
    */
   (unCancel?: boolean): void
   isCanceled: boolean
-} 
+}
+
+export interface packetUpdater {
+  (update?: boolean): void
+  isUpdated: boolean
+}
 
 export interface PacketMiddleware {
   (info: {
     bound: 'server' | 'client',
     writeType: 'packet' | 'rawPacket' | 'channel',
     meta: PacketMeta
-  }, pclient: Client, data: any, cancel: packetCanceler): void | Promise<void>;
+  }, pclient: Client, data: any, cancel: packetCanceler, update: packetUpdater): void | Promise<void>;
 }
+
+const writeBuffer = false
 
 export class Conn {
   options: ConnOptions;
@@ -118,14 +125,22 @@ export class Conn {
       for (const pclient of this.receivingPclients) {
         // Build packet canceler function used by middleware
         const cancel: packetCanceler = Object.assign((unCancel: boolean = false) => {
-          if (unCancel === false) {
+          if (unCancel === true) {
             cancel.isCanceled = false
+          } else {
+            cancel.isCanceled = true
           }
-          cancel.isCanceled = true
+          update.isUpdated = true
         }, { isCanceled: false })
+        const update: packetUpdater = Object.assign((unUpdate: boolean = false) => {
+          if (unUpdate === false) {
+            update.isUpdated = false
+          }
+          update.isUpdated = true
+        }, { isUpdated: false })
 
         for (const middleware of pclient.toClientMiddlewares) {
-          const funcReturn = middleware({ bound: 'client', meta, writeType: 'packet' }, pclient, data, cancel)
+          const funcReturn = middleware({ bound: 'client', meta, writeType: 'packet' }, pclient, data, cancel, update)
           if (funcReturn instanceof Promise) {
             await funcReturn
           }
@@ -133,7 +148,11 @@ export class Conn {
         if (cancel.isCanceled === false) {
           // TODO: figure out what packet is breaking crafting on 2b2t
           // pclient.write(meta.name, data);
-          pclient.writeRaw(buffer);
+          if (writeBuffer) {
+            pclient.writeRaw(buffer)
+          } else {
+            pclient.write(meta.name, data)
+          }
         }
       }
     }
@@ -148,14 +167,22 @@ export class Conn {
       if (pclient.state !== states.PLAY || meta.state !== states.PLAY) { return }
       // Build packet canceler function used by middleware
       const cancel: packetCanceler = Object.assign((unCancel: boolean = false) => {
-        if (unCancel === false) {
+        if (unCancel === true) {
           cancel.isCanceled = false
+        } else {
+          cancel.isCanceled = true
         }
-        cancel.isCanceled = true
+        update.isUpdated = true
       }, { isCanceled: false })
+      const update: packetUpdater = Object.assign((unUpdate: boolean = false) => {
+        if (unUpdate === false) {
+          update.isUpdated = false
+        }
+        update.isUpdated = true
+      }, { isUpdated: false })
 
       for (const middleware of pclient.toClientMiddlewares) {
-        const funcReturn = middleware({ bound: 'client', meta, writeType: 'packet' }, pclient, packetData, cancel)
+        const funcReturn = middleware({ bound: 'client', meta, writeType: 'packet' }, pclient, packetData, cancel, update)
         if (funcReturn instanceof Promise) {
           await funcReturn
         }
@@ -165,19 +192,25 @@ export class Conn {
       // Probably some bad unlocked recipes packet reconstruction on login that is causing packets send after to crash the client.
       
       if (cancel.isCanceled === false) {
-        // pclient.write(meta.name, data);
-        // @ts-ignore-error
-        const packetBuff = pclient.serializer.createPacketBuffer({ name: meta.name, params: packetData })
-        if (!bufferEqual(buffer, packetBuff)) {
-          console.log('client<-server: Error in packet ' + meta.state + '.' + meta.name + ' This packet is breaking the proxy. Ping @Ic3Tank on NextGen discord')
-          //   // console.log('received buffer', buffer.toString('hex'))
-          //   // console.log('produced buffer', packetBuff.toString('hex'))
-          //   console.log('received length', buffer.length)
-          //   console.log('produced length', packetBuff.length)
-          pclient.writeRaw(buffer);
-        } else {
-          pclient.write(meta.name, packetData);
+        if (!update.isUpdated && !writeBuffer) {
+          pclient.writeRaw(buffer)
+          return
         }
+        // pclient.write(meta.name, data);
+        if (writeBuffer) {
+          // @ts-ignore-error
+          const packetBuff = pclient.serializer.createPacketBuffer({ name: meta.name, params: packetData })
+          if (!bufferEqual(buffer, packetBuff)) {
+            console.log('client<-server: Error in packet ' + meta.state + '.' + meta.name + ' This packet is breaking the proxy. Ping @Ic3Tank on NextGen discord')
+            //   // console.log('received buffer', buffer.toString('hex'))
+            //   // console.log('produced buffer', packetBuff.toString('hex'))
+            //   console.log('received length', buffer.length)
+            //   console.log('produced length', packetBuff.length)
+            pclient.writeRaw(buffer);
+            return
+          }
+        }
+        pclient.write(meta.name, packetData)
       }
     }
   }
@@ -192,32 +225,46 @@ export class Conn {
     const handle = async () => {
       // Build packet canceler function used by middleware
       const cancel: packetCanceler = Object.assign((unCancel: boolean = false) => {
-        if (unCancel === false) {
+        if (unCancel === true) {
           cancel.isCanceled = false
+        } else {
+          cancel.isCanceled = true
         }
-        cancel.isCanceled = true
+        update.isUpdated = true
       }, { isCanceled: false })
-      for (const middleware of pclient.toServerMiddlewares) {
+      const update: packetUpdater = Object.assign((unUpdate: boolean = false) => {
+        if (unUpdate === false) {
+          update.isUpdated = false
+        }
+        update.isUpdated = true
+      }, { isUpdated: false })
 
-        const funcReturn = middleware({ bound: 'server', meta, writeType: 'packet' }, pclient, data, cancel)
+      for (const middleware of pclient.toServerMiddlewares) {
+        const funcReturn = middleware({ bound: 'server', meta, writeType: 'packet' }, pclient, data, cancel, update)
         if (funcReturn instanceof Promise) {
           await funcReturn
         }
       }
       if (cancel.isCanceled === false) {
-        // @ts-ignore-error
-        const packetBuff = pclient.serializer.createPacketBuffer(data)
-        // TODO: figure out what packet is breaking crafting on 2b2t
-        if (!bufferEqual(buffer, packetBuff)) {
-          console.log('server<-client: Error in packet ' + meta.state + '.' + meta.name + ' This packet is breaking the proxy. Ping @Ic3Tank on NextGen discord')
-          this.writeRaw(buffer)
-        //   // console.log('received buffer', buffer.toString('hex'))
-        //   // console.log('produced buffer', packetBuff.toString('hex'))
-        //   console.log('received length', buffer.length)
-        //   console.log('produced length', packetBuff.length)
-        } else {
-          this.write(meta.name, data)
+        if (!update.isUpdated && writeBuffer) {
+          pclient.writeRaw(buffer)
+          return
         }
+        // TODO: figure out what packet is breaking crafting on 2b2t
+        if (writeBuffer) {
+          // @ts-ignore-error
+          const packetBuff = pclient.serializer.createPacketBuffer(data)
+          if (!bufferEqual(buffer, packetBuff)) {
+            console.log('server<-client: Error in packet ' + meta.state + '.' + meta.name + ' This packet is breaking the proxy. Ping @Ic3Tank on NextGen discord')
+            this.writeRaw(buffer)
+            //   // console.log('received buffer', buffer.toString('hex'))
+            //   // console.log('produced buffer', packetBuff.toString('hex'))
+            //   console.log('received length', buffer.length)
+            //   console.log('produced length', packetBuff.length)
+            return
+          }
+        }
+        this.write(meta.name, data)
         // this.write(meta.name, data);
         // this.writeRaw(buffer)
       }
@@ -232,13 +279,10 @@ export class Conn {
    */
   _serverClientDefaultMiddleware(pclient: Client) {
     if (!pclient.toClientMiddlewares) pclient.toClientMiddlewares = []
-    pclient.toClientMiddlewares.push((info: {
-      bound: 'server' | 'client',
-      writeType: 'packet' | 'rawPacket' | 'channel',
-      meta: PacketMeta
-    }, pclient: Client, data: any, cancel: packetCanceler) => {
+    const _internalMcProxyServerClient: PacketMiddleware = (info, pclient, data, cancel, update) => {
       if (!this.receivingPclients.includes(pclient)) return cancel()
-    })
+    }
+    pclient.toClientMiddlewares.push(_internalMcProxyServerClient)
     // (conn, pclient) => ['end', () => conn.detach(pclient)],
     // (conn, pclient) => ['error', () => conn.detach(pclient)],
   }
@@ -249,11 +293,7 @@ export class Conn {
    */
   _clientServerDefaultMiddleware(pclient: Client) {
     if (!pclient.toServerMiddlewares) pclient.toServerMiddlewares = []
-    function defaultClientServerMiddleware(this: any, info: {
-      bound: 'server' | 'client',
-      writeType: 'packet' | 'rawPacket' | 'channel',
-      meta: PacketMeta
-    }, pclient: Client, data: any, cancel: packetCanceler) {
+    const _internalMcProxyClientServer: PacketMiddleware = (info, pclient, data: any, cancel) => {
       const name = info.meta.name
       //* check if client is authorized to modify connection (sending packets and state information from mineflayer)
       if (info.meta.name === 'teleport_confirm' && data?.teleportId === 0) {
@@ -296,7 +336,7 @@ export class Conn {
           break;
       }
     }
-    pclient.toServerMiddlewares.push(defaultClientServerMiddleware.bind(this))
+    pclient.toServerMiddlewares.push(_internalMcProxyClientServer.bind(this))
   }
 
   /**
