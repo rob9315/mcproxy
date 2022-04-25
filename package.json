@@ -22,7 +22,7 @@
   },
   "prettier": "@rob9315/prettier-config",
   "dependencies": {
-    "minecraft-data": "^2.119.1",
+    "minecraft-data": "^3.0.0",
     "minecraft-protocol": "^1.32.0",
     "mineflayer": "^4.1.0",
     "prismarine-item": "^1.11.2",
