@@ -1,7 +1,7 @@
 import { Bot, BotOptions, createBot } from 'mineflayer';
 import type { Client as mcpClient, PacketMeta } from 'minecraft-protocol';
 import { states } from "minecraft-protocol";
-import { generatePackets } from './packets';
+import { getLoginSequencePackets } from './packets';
 const bufferEqual = require('buffer-equal')
 
 export type Packet = [name: string, data: any];
@@ -60,8 +60,11 @@ const writeBuffer = false
 export class Conn {
   options: ConnOptions;
   bot: Bot & { recipes: number[] };
+  /** Contains the currently writing client or undefined if there is none */
   writingPclient: Client | undefined;
+  /** Contains clients that are actively receiving packets from the proxy bot */
   receivingPclients: Client[] = [];
+  /** Contains all connected clients. Even when they are not receiving or sending any packets */
   pclients: Client[] = [];
   toClientDefaultMiddleware?: PacketMiddleware[] = undefined;
   toServerDefaultMiddleware?: PacketMiddleware[] = undefined;
@@ -80,86 +83,16 @@ export class Conn {
     if (options?.toClientMiddleware) this.toClientDefaultMiddleware = options.toClientMiddleware;
     if (options?.toServerMiddleware) this.toServerDefaultMiddleware = options.toServerMiddleware;
 
-    // this.bot._client.on('packet', this.onServerPacket.bind(this));
     this.bot._client.on('raw', this.onServerRaw.bind(this))
-    // this.options.events = [...defaultEvents, ...this.options.events];
   }
 
   /**
-   * Handles Packets send by the server
-   * @param data Packet data
-   * @param meta Packet meta
+   * Called when the proxy bot receives a packet from the server. Forwards the packet to all attached and receiving clients taking
+   * attached middleware's into account.
+   * @param buffer Buffer
+   * @param meta 
+   * @returns 
    */
-  onServerPacket(data: any, meta: PacketMeta, buffer: Buffer) {
-    // Packet saving for world persistance
-    //* entity metadata tracking
-    if (data.metadata && data.entityId && this.bot.entities[data.entityId]) (this.bot.entities[data.entityId] as any).rawMetadata = data.metadata;
-
-    //* recipe tracking https://wiki.vg/index.php?title=Protocol&oldid=14204#Unlock_Recipes
-    switch (meta.name) {
-      case 'unlock_recipes':
-        switch (data.action) {
-          case 0: //* initialize
-            this.bot.recipes = data.recipes1;
-            break;
-          case 1: //* add
-            this.bot.recipes = [...this.bot.recipes, ...data.recipes1];
-            break;
-          case 2: //* remove
-            this.bot.recipes = Array.from(
-              (data.recipes1 as number[]).reduce((recipes, recipe) => {
-                recipes.delete(recipe);
-                return recipes;
-              }, new Set(this.bot.recipes))
-            );
-            break;
-        }
-        break;
-      case 'abilities':
-        this.bot.physicsEnabled = !!((data.flags & 0b10) ^ 0b10);
-        break;
-    }
-
-    const sendPackets = async () => {
-      //* relay packet to all connected clients
-      for (const pclient of this.receivingPclients) {
-        // Build packet canceler function used by middleware
-        const cancel: packetCanceler = Object.assign((unCancel: boolean = false) => {
-          if (unCancel === true) {
-            cancel.isCanceled = false
-          } else {
-            cancel.isCanceled = true
-          }
-          update.isUpdated = true
-        }, { isCanceled: false })
-        const update: packetUpdater = Object.assign((unUpdate: boolean = false) => {
-          if (unUpdate === false) {
-            update.isUpdated = false
-          }
-          update.isUpdated = true
-        }, { isUpdated: false })
-
-        for (const middleware of pclient.toClientMiddlewares) {
-          const funcReturn = middleware({ bound: 'client', meta, writeType: 'packet' }, pclient, data, cancel, update)
-          if (funcReturn instanceof Promise) {
-            await funcReturn
-          }
-        }
-        if (cancel.isCanceled === false) {
-          // TODO: figure out what packet is breaking crafting on 2b2t
-          // pclient.write(meta.name, data);
-          if (writeBuffer) {
-            pclient.writeRaw(buffer)
-          } else {
-            pclient.write(meta.name, data)
-          }
-        }
-      }
-    }
-    sendPackets()
-      .catch(console.error)
-  }
-
   async onServerRaw(buffer: Buffer, meta: PacketMeta) {
     // @ts-ignore-error
     const packetData = this.bot._client.deserializer.parsePacketBuffer(buffer).data.params
@@ -216,7 +149,7 @@ export class Conn {
   }
 
   /**
-   * Handles packets send by a client
+   * Handles packets send by a client to a server taking attached middleware's into account.
    * @param data Packet data
    * @param meta Packet Meta
    * @param pclient Sending Client
@@ -340,7 +273,9 @@ export class Conn {
   }
 
   /**
-   * Register new pclient (connection coming from mc-protocol server) to the list of pclient.
+   * Register new pclient (connection coming from mc-protocol server) to the list of pclient. This does not make
+   * the registered client a receiving client. For a client to be a receiving client, it must be added to the
+   * {@link receivingPclients} array.
    * @param pclient 
    * @param options 
    */
@@ -374,21 +309,31 @@ export class Conn {
     if (this.writingPclient === pclient) this.unlink()
   }
 
-  //* generates and sends packets suitable to a client
+  /**
+   * Send all packets to a client that are required to login to a server.
+   * @param pclient
+   */
   sendPackets(pclient: Client) {
     console.info('sendPackets')
     this.generatePackets(pclient).forEach((packet) => pclient.write(...packet));
   }
-  //* generates packets ([if provided] suitable to a client)
+
+  /**
+   * Generate the login sequence off packets for a client from the current bot state. Can take the client as an optional
+   * argument to customize packets to the client state like version but is not used at the moment and defaults to 1.12.2
+   * generic packets.
+   * @param pclient Optional. Does nothing.
+   */
   generatePackets(pclient?: Client): Packet[] {
-    let a = generatePackets(this.bot, pclient)
-    // for (const packet of a ) {
-    //   console.log(packet);
-    // }
-    return a
+    return getLoginSequencePackets(this.bot, pclient)
   }
 
-  //* attaching means receiving all packets from the server
+  /**
+   * Attaches a client to the proxy. Attaching means receiving all packets from the server. Takes middleware handlers 
+   * as an optional argument to be used for the client.
+   * @param pclient 
+   * @param options 
+   */
   attach(pclient: Client, options?: { toClientMiddleware?: PacketMiddleware[], toServerMiddleware?: PacketMiddleware[] }) {
     console.info('Attach')
     if (!this.pclients.includes(pclient)) {

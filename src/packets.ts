@@ -47,7 +47,7 @@ export function sendTo(pclient: Client, ...args: PacketTuple[]) {
   }
 }
 
-export function generatePackets(bot: Bot & { recipes: number[] }, pclient?: Client): Packet[] {
+export function getLoginSequencePackets(bot: Bot & { recipes: number[] }, pclient?: Client): Packet[] {
   //* if not spawned yet, return nothing
   if (!bot.entity) return [];
 
