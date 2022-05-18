@@ -15,15 +15,18 @@ const conn = new Conn({
 })
 
 conn.bot.once('spawn', () => {
-  /** Middleware for server bound packets */
-  /** @type {import('../lib/index').PacketMiddleware} */
-  const fakePingMiddleware = async (_info, _pclient, _data, cancel) => {
+  /**
+   * The middleware to handle packets
+   * vvv This makes you see the intellisense on the properties middleware functions vvv
+   * @type {import('../lib/index').PacketMiddleware} 
+   */
+  const fakePingMiddleware = async (info, pclient, data, cancel) => {
     if (cancel.isCanceled) return
     await wait(500)
   }
 
   /** @type {import('../lib/index').PacketMiddleware} */
-  const filterChatMiddleware = (info, _pclient, data, cancel) => {
+  const filterChatMiddleware = (info, pclient, data, cancel) => {
     if (cancel.isCanceled) return // Not necessary but may improve performance when using multiple middleware's after each other
     if (info.meta.name !== 'chat') return
     if (JSON.stringify(data.message).includes('censor')) return cancel() // Cancel all packets that have the word censor in the chat message string
