@@ -28,7 +28,7 @@ export class ConnOptions {
   //* filter for the main client as long as it is not overwritten by the client itself
   toServerBlackList: string[] = ['keep_alive'];
   //* filter for all attached clients if it is not overwritten by the client
-  toClientBlackList: string[] = ['keep_alive'];
+  toClientBlackList: string[] = ['keep_alive', 'unlock_recipes'];
   //* Middleware to control packets being send to the client and server
   toClientMiddleware?: PacketMiddleware[] = [() => { }];
   toServerMiddleware?: PacketMiddleware[] = [() => { }];
