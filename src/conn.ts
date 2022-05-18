@@ -47,12 +47,26 @@ export interface packetUpdater {
   isUpdated: boolean
 }
 
+/**
+ * Middleware manager for packets. Used to modify cancel or delay packets being send to the client or server.
+ */
 export interface PacketMiddleware {
+  /** Contains meta information about the packet that is triggered. See the properties for more info. */
   (info: {
+    /** Direction the packet is going. Should always be the same direction depending on what middleware direction you
+     * are registering.
+     */
     bound: 'server' | 'client',
+    /** Only 'packet' is implemented */
     writeType: 'packet' | 'rawPacket' | 'channel',
+    /** Packet meta. Contains the packet name under `name` also see {@link PacketMeta} */
     meta: PacketMeta
-  }, pclient: Client, data: any, cancel: packetCanceler, update: packetUpdater): void | Promise<void>;
+  }, 
+  /** The client connected to this packet */ pclient: Client, 
+  /** Parsed packet data as returned by nmp */ data: any, 
+  /** A handle to cancel a packet from being send. Can also force a packet to be send */ cancel: packetCanceler, 
+  /** Indicate that a packet has been modified */ update: packetUpdater
+  ): void | Promise<void>;
 }
 
 const writeBuffer = false
