@@ -297,10 +297,12 @@ export class Conn {
     this._clientServerDefaultMiddleware(pclient)
     this._serverClientDefaultMiddleware(pclient)
     this.pclients.push(pclient);
-    pclient.on('end', () => {
+    const packetListener = (data: any, meta: PacketMeta, buffer: Buffer) => this.onClientPacket(data, meta, buffer, pclient)
+    pclient.on('packet', packetListener)
+    pclient.once('end', () => {
       this.unregisterPClient(pclient)
+      pclient.removeListener('packet', packetListener)
     })
-    pclient.on('packet', (data, meta, buffer) => this.onClientPacket(data, meta, buffer, pclient))
     if (options?.toClientMiddleware) pclient.toClientMiddlewares.push(...options.toClientMiddleware)
     if (options?.toServerMiddleware) {
       console.info('Added additional toServer middleware')
@@ -319,7 +321,6 @@ export class Conn {
   unregisterPClient(pclient: Client) {
     this.pclients = this.pclients.filter(c => c !== pclient)
     this.receivingPclients = this.receivingPclients.filter(c => c !== pclient)
-    pclient.removeAllListeners('packet')
     if (this.writingPclient === pclient) this.unlink()
   }
 
