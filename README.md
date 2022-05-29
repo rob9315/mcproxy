@@ -69,6 +69,36 @@ const packet: Packet = ['chat', { message: 'Welcome to mcproxy!', position: 0 }]
 pclient.write(...packet);
 ```
 
+#### `PacketMeta`
+
+The packet meta. Name is the packet name. State can be play or login (?).
+
+```ts
+name: string
+state: States
+```
+
+#### `Middleware`
+
+A function to interact with send packets between a connected client and the server.
+##### Arguments:
+* info - Object that contains meta info about the packet.
+  * bound - String. Either `'client'` or `'server'`. Will always be the same depending on If the middleware was attached as a to Client or to Server middleware. 
+  * meta - The `PacketMeta` off the send packet.
+  * writeType - Only `'packet'` at the moment
+* pclient - `Client`. The client this packet belongs to or is destined to.
+* data - The parsed packet data. See the [prismarine data](https://minecraft-data.prismarine.js.org/?d=protocol) for protocol specific packet data.
+* cancel - The packet canceler function. If you want cancel a packet you call this function. Also has a `isCanceled` attribute to check if a packet is already canceled or not. Can be called with the first argument as `false` to revers an already set canceled attribute to un cancel a packet.
+* update - The packet updater. If a packet has been changed this function should be called. This can be used to speed up middleware performance by only serializing packets that have been changed. Has an attribute `isUpdated` to check if the current packet will be treated as updated or not. Can be called with the first argument as `false` to revers an already set update attribute to un update a packet.
+
+```ts
+const middlewareFunction: PacketMiddleware = (info, pclient, data: any, cancel) => {
+  if (cancel.isCanceled) return // Not necessary but may improve performance when using multiple middleware's after each other
+  if (info.meta.name !== 'chat') return
+  if (JSON.stringify(data.message).includes('censor')) return cancel() // Cancel all packets that have the word censor in the chat message string
+}
+```
+
 ### `generatePackets()`
 
 ```ts
@@ -110,10 +140,14 @@ calls `Conn.generatePackets()` and sends the result to the proxyClient specified
 ### `Conn.attach()`
 
 ```ts
-Conn.attach(pclient: Client)
+Conn.attach(pclient: Client, options?: { toClientMiddleware?: PacketMiddleware[], toServerMiddleware?: PacketMiddleware[] })
 ```
+* pclient - The client to be attached
+* options - Optional
+  * toClientMiddleware - Optional. A middleware function array to be used as this clients middle ware to the client. See middleware for a function definition.
+  * toServerMiddleware - Optional. A middleware function array to be used as this clients middle ware to the server
 
-the pclient specified will be added to the `Conn.pclients` array, which means that it will receive all packets from the server. If you want the client to be able to send packets to the server as well, don't forget to call `Conn.link()`
+the pclient specified will be added to the `Conn.pclients` array and the `Conn.receivingPclients`, which means that it will receive all packets from the server. If you want the client to be able to send packets to the server as well, don't forget to call `Conn.link()`
 
 ### `Conn.detach()`
 
