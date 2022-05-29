@@ -336,8 +336,7 @@ export class Conn {
   //* if the client was the main client, it will also be unlinked.
   detach(pclient: Client) {
     console.info('Client Detached');
-    this.receivingPclients = this.pclients.filter((client) => client !== pclient);
-    if (this.writingPclient === pclient) this.unlink();
+    this.unregisterPClient(pclient);
   }
 
   //* linking means being the main client on the connection, being able to write to the server
