@@ -40,17 +40,17 @@ The botOptions which are needed in the constructor of Conn, are the same as the 
 
 ConnOptions regulate Conn-specific settings.
 
-* Object. Optional
-  * `optimizePacketWrite` - Boolean. Optional. Setting for writing the received packet buffer instead off re serializing the deserialized packet. Packets that had there data changed inside the middleware are effected by this. Defaults to `true`.
-  * `toClientMiddleware` - Middleware. Optional. A default to Client middleware to be attached to every client. 
-  * `toServerMiddleware` - Middleware. Optional. A default to Server middleware to be attached to every client.
+- Object. Optional
+  - `optimizePacketWrite` - Boolean. Optional. Setting for writing the received packet buffer instead off re serializing the deserialized packet. Packets that had there data changed inside the middleware are effected by this. Defaults to `true`.
+  - `toClientMiddleware` - Middleware. Optional. A default to Client middleware to be attached to every client.
+  - `toServerMiddleware` - Middleware. Optional. A default to Server middleware to be attached to every client.
 
 #### `Client` | `pclient`
 
 The Client class is the same as the minecraft-protocol client class with the one exception that it can also contain the following settings used in the Conn class to cause different behaviors.
 
-* `toClientMiddlewares` - `Middleware[]`. To client middleware array
-* `toServerMiddlewares` - `Middleware[]`. To server middleware array
+- `toClientMiddlewares` - `Middleware[]`. To client middleware array
+- `toServerMiddlewares` - `Middleware[]`. To server middleware array
 
 #### `Packet`
 
@@ -67,29 +67,31 @@ pclient.write(...packet);
 The packet meta. Name is the packet name. State can be play or login (?).
 
 ```ts
-name: string
-state: States
+name: string;
+state: States;
 ```
 
 #### `Middleware`
 
 A function to interact with send packets between a connected client and the server.
+
 ##### Arguments:
-* `info` - Object that contains meta info about the packet.
-  * `bound` - String. Either `'client'` or `'server'`. Will always be the same depending on If the middleware was attached as a to Client or to Server middleware. 
-  * `meta` - The `PacketMeta` off the send packet.
-  * `writeType` - Only `'packet'` at the moment
-* `pclient` - `Client`. The client this packet belongs to or is destined to.
-* `data` - The parsed packet data. See the [prismarine data](https://minecraft-data.prismarine.js.org/?d=protocol) for protocol specific packet data.
-* `cancel` - The packet canceler function. If you want cancel a packet you call this function. Also has a `isCanceled` attribute to check if a packet is already canceled or not. Can be called with the first argument as `false` to revers an already set canceled attribute to un cancel a packet.
-* `update` - The packet updater. If a packet has been changed this function should be called. This can be used to speed up middleware performance by only serializing packets that have been changed. Has an attribute `isUpdated` to check if the current packet will be treated as updated or not. Can be called with the first argument as `false` to revers an already set update attribute to un update a packet.
+
+- `info` - Object that contains meta info about the packet.
+  - `bound` - String. Either `'client'` or `'server'`. Will always be the same depending on If the middleware was attached as a to Client or to Server middleware.
+  - `meta` - The `PacketMeta` off the send packet.
+  - `writeType` - Only `'packet'` at the moment
+- `pclient` - `Client`. The client this packet belongs to or is destined to.
+- `data` - The parsed packet data. See the [prismarine data](https://minecraft-data.prismarine.js.org/?d=protocol) for protocol specific packet data.
+- `cancel` - The packet canceler function. If you want cancel a packet you call this function. Also has a `isCanceled` attribute to check if a packet is already canceled or not. Can be called with the first argument as `false` to revers an already set canceled attribute to un cancel a packet.
+- `update` - The packet updater. If a packet has been changed this function should be called. This can be used to speed up middleware performance by only serializing packets that have been changed. Has an attribute `isUpdated` to check if the current packet will be treated as updated or not. Can be called with the first argument as `false` to revers an already set update attribute to un update a packet.
 
 ```ts
 const middlewareFunction: PacketMiddleware = (info, pclient, data: any, cancel) => {
-  if (cancel.isCanceled) return // Not necessary but may improve performance when using multiple middleware's after each other
-  if (info.meta.name !== 'chat') return
-  if (JSON.stringify(data.message).includes('censor')) return cancel() // Cancel all packets that have the word censor in the chat message string
-}
+  if (cancel.isCanceled) return; // Not necessary but may improve performance when using multiple middleware's after each other
+  if (info.meta.name !== 'chat') return;
+  if (JSON.stringify(data.message).includes('censor')) return cancel(); // Cancel all packets that have the word censor in the chat message string
+};
 ```
 
 ### `getLoginSequencePackets()`
@@ -135,10 +137,11 @@ calls `Conn.generatePackets()` and sends the result to the proxyClient specified
 ```ts
 Conn.attach(pclient: Client, options?: { toClientMiddleware?: PacketMiddleware[], toServerMiddleware?: PacketMiddleware[] })
 ```
-* pclient - The client to be attached
-* options - Optional
-  * toClientMiddleware - Optional. A middleware function array to be used as this clients middle ware to the client. See middleware for a function definition.
-  * toServerMiddleware - Optional. A middleware function array to be used as this clients middle ware to the server
+
+- pclient - The client to be attached
+- options - Optional
+  - toClientMiddleware - Optional. A middleware function array to be used as this clients middle ware to the client. See middleware for a function definition.
+  - toServerMiddleware - Optional. A middleware function array to be used as this clients middle ware to the server
 
 the pclient specified will be added to the `Conn.pclients` array and the `Conn.receivingPclients`, which means that it will receive all packets from the server. If you want the client to be able to send packets to the server as well, don't forget to call `Conn.link()`
 
