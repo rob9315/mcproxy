@@ -10,11 +10,6 @@ export type ClientEventTuple = [event: string, listener: (...args: any) => void]
 export type ClientEvents = (ClientEventTuple | ((conn: Conn, pclient: Client) => ClientEventTuple))[];
 
 export type Client = mcpClient & {
-  //* whitelist overwrites not being the main pclient
-  toServerWhiteList?: string[];
-  //* filter when the client is attached
-  toClientBlackList?: string[];
-
   toClientMiddlewares: PacketMiddleware[];
   toServerMiddlewares: PacketMiddleware[];
 };
