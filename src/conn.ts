@@ -305,11 +305,9 @@ export class Conn {
     })
     if (options?.toClientMiddleware) pclient.toClientMiddlewares.push(...options.toClientMiddleware)
     if (options?.toServerMiddleware) {
-      console.info('Added additional toServer middleware')
+      // console.info('Added additional toServer middleware')
       pclient.toServerMiddlewares.push(...options.toServerMiddleware)
-      console.info(pclient.toServerMiddlewares)
-    } else {
-      console.info('no additional to server middleware')
+      // console.info(pclient.toServerMiddlewares)
     }
   }
 
@@ -329,7 +327,7 @@ export class Conn {
    * @param pclient
    */
   sendPackets(pclient: Client) {
-    console.info('sendPackets')
+    // console.info('sendPackets')
     this.generatePackets(pclient).forEach((packet) => pclient.write(...packet));
   }
 
@@ -350,7 +348,7 @@ export class Conn {
    * @param options 
    */
   attach(pclient: Client, options?: { toClientMiddleware?: PacketMiddleware[], toServerMiddleware?: PacketMiddleware[] }) {
-    console.info('Attach')
+    console.info('Client Attached')
     if (!this.pclients.includes(pclient)) {
       this.registerNewPClient(pclient, options)
       // if (options && options.toClientMiddleware) pclient.toClientMiddleware = options.toClientMiddleware;
@@ -365,6 +363,7 @@ export class Conn {
   //* a client that isn't attached anymore will no longer receive packets from the server
   //* if the client was the main client, it will also be unlinked.
   detach(pclient: Client) {
+    console.info('Client Detached')
     this.receivingPclients = this.pclients.filter((client) => client !== pclient);
     // this.options.events.map(customizeClientEvents(this, pclient)).forEach(([event, listener]) => pclient.removeListener(event, listener));
     if (this.writingPclient === pclient) this.unlink();
