@@ -99,11 +99,11 @@ const middlewareFunction: PacketMiddleware = (info, pclient, data: any, cancel) 
 }
 ```
 
-### `generatePackets()`
+### `getLoginSequencePackets()`
 
 ```ts
-import { generatePackets } from '@rob9315/mcproxy';
-let packets: Packet[] = generatePackets(bot, pclient?: Client);
+import { getLoginSequencePackets } from '@rob9315/mcproxy';
+let packets: Packet[] = getLoginSequencePackets(bot, pclient?: Client);
 packets.forEach((packet)=>pclient.write(...packet));
 ```
 
