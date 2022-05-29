@@ -110,21 +110,14 @@ export class Conn {
       // Build packet canceler function used by middleware
       const cancel: packetCanceler = Object.assign(
         (unCancel: boolean = false) => {
-          if (unCancel === true) {
-            cancel.isCanceled = false;
-          } else {
-            cancel.isCanceled = true;
-          }
+          cancel.isCanceled = unCancel ? false : true;
           update.isUpdated = true;
         },
         { isCanceled: false }
       );
       const update: packetUpdater = Object.assign(
         (unUpdate: boolean = false) => {
-          if (unUpdate === false) {
-            update.isUpdated = false;
-          }
-          update.isUpdated = true;
+          update.isUpdated = !!unUpdate;
         },
         { isUpdated: false }
       );
@@ -174,21 +167,14 @@ export class Conn {
       // Build packet canceler function used by middleware
       const cancel: packetCanceler = Object.assign(
         (unCancel: boolean = false) => {
-          if (unCancel === true) {
-            cancel.isCanceled = false;
-          } else {
-            cancel.isCanceled = true;
-          }
+          cancel.isCanceled = unCancel ? false : true;
           update.isUpdated = true;
         },
         { isCanceled: false }
       );
       const update: packetUpdater = Object.assign(
         (unUpdate: boolean = false) => {
-          if (unUpdate === false) {
-            update.isUpdated = false;
-          }
-          update.isUpdated = true;
+          update.isUpdated = !!unUpdate;
         },
         { isUpdated: false }
       );
