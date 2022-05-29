@@ -11,22 +11,14 @@ const conn = new Conn({
   host: process.argv[2],
   port: parseInt(process.argv[3]),
   username: process.argv[4] ? process.argv[4] : 'proxyBot',
-  password: process.argv[5]
+  password: process.argv[5] ? process.argv[5] : '',
+  auth: process.argv[5] ? 'microsoft' : 'mojang',
+  version: '1.12.2',
 })
 
 conn.bot.once('spawn', () => {
-  /**
-   * The middleware to handle packets
-   * vvv This makes you see the intellisense on the properties middleware functions vvv
-   * @type {import('../lib/index').PacketMiddleware} 
-   */
-  const fakePingMiddleware = async (info, pclient, data, cancel) => {
-    if (cancel.isCanceled) return
-    await wait(500)
-  }
-
   /** @type {import('../lib/index').PacketMiddleware} */
-  const filterChatMiddleware = (info, pclient, data, cancel) => {
+  const filterChatMiddleware = (info, pclient, data, cancel, update) => {
     if (cancel.isCanceled) return // Not necessary but may improve performance when using multiple middleware's after each other
     if (info.meta.name !== 'chat') return
     if (JSON.stringify(data.message).includes('censor')) return cancel() // Cancel all packets that have the word censor in the chat message string
@@ -47,8 +39,7 @@ conn.bot.once('spawn', () => {
     conn.sendPackets(client)
     
     conn.link(client, {
-      toClientMiddleware: [filterChatMiddleware],
-      toServerMiddleware: [fakePingMiddleware]
+      toClientMiddleware: [filterChatMiddleware]
     })
   })
 })
