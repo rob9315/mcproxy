@@ -1,4 +1,4 @@
-const { Conn } = require('../lib/index')
+const { Conn } = require('..')
 const { createServer } = require('minecraft-protocol')
 const wait = require('util').promisify(setTimeout)
 
@@ -17,6 +17,8 @@ const conn = new Conn({
 })
 
 conn.bot.once('spawn', () => {
+  console.log("spawn")
+  
   /** @type {import('../lib/index').PacketMiddleware} */
   const filterChatMiddleware = (info, pclient, data, cancel, update) => {
     if (cancel.isCanceled) return // Not necessary but may improve performance when using multiple middleware's after each other
@@ -42,4 +44,12 @@ conn.bot.once('spawn', () => {
       toClientMiddleware: [filterChatMiddleware]
     })
   })
+})
+
+conn.bot.on("error", (err) => {
+  console.error(err)
+});
+conn.bot.on("end", (reason) => {
+  console.error(reason)
+  process.exit(1)
 })

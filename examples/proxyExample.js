@@ -1,6 +1,6 @@
 // import mcproxy, replace ".."
 // with "@rob9315/mcproxy" in your project
-const mcproxy = require("../lib");
+const mcproxy = require("..");
 const minecraft_protocol = require("minecraft-protocol");
 
 // initialize bot instance like you would with mineflayer
