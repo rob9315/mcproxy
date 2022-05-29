@@ -92,7 +92,7 @@ export function getLoginSequencePackets(bot: Bot & { recipes: number[] }, pclien
     //? entity status theoretically (current animation playing)
     //? commands / add option to provide own commands
     // [
-    //   'unlock_recipes',
+    //   'unlock_recipes', // This seams to break on 2b2t. If we do not filter recipes, we crash the client.
     //   {
     //     action: 0,
     //     craftingBookOpen: false,
