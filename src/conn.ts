@@ -137,16 +137,11 @@ export class Conn {
           pclient.writeRaw(buffer);
           return;
         }
-        // pclient.write(meta.name, data);
         if (this.optimizePacketWrite) {
           // @ts-ignore-error
           const packetBuff = pclient.serializer.createPacketBuffer({ name: meta.name, params: packetData });
           if (!bufferEqual(buffer, packetBuff)) {
             console.log('client<-server: Error in packet ' + meta.state + '.' + meta.name + ' This packet is breaking the proxy. Ping @Ic3Tank on NextGen discord');
-            //   // console.log('received buffer', buffer.toString('hex'))
-            //   // console.log('produced buffer', packetBuff.toString('hex'))
-            //   console.log('received length', buffer.length)
-            //   console.log('produced length', packetBuff.length)
             pclient.writeRaw(buffer);
             return;
           }
@@ -197,16 +192,10 @@ export class Conn {
           if (!bufferEqual(buffer, packetBuff)) {
             console.log('server<-client: Error in packet ' + meta.state + '.' + meta.name + ' This packet is breaking the proxy. Ping @Ic3Tank on NextGen discord');
             this.writeRaw(buffer);
-            //   // console.log('received buffer', buffer.toString('hex'))
-            //   // console.log('produced buffer', packetBuff.toString('hex'))
-            //   console.log('received length', buffer.length)
-            //   console.log('produced length', packetBuff.length)
             return;
           }
         }
         this.write(meta.name, data);
-        // this.write(meta.name, data);
-        // this.writeRaw(buffer)
       }
     };
     handle().catch(console.error);
@@ -222,8 +211,6 @@ export class Conn {
       if (!this.receivingPclients.includes(pclient)) return cancel();
     };
     pclient.toClientMiddlewares.push(_internalMcProxyServerClient);
-    // (conn, pclient) => ['end', () => conn.detach(pclient)],
-    // (conn, pclient) => ['error', () => conn.detach(pclient)],
   }
 
   /**
@@ -245,7 +232,6 @@ export class Conn {
         cancel();
       }
       if (this.writingPclient !== pclient) {
-        // console.info(info.meta.name, 'Client -> Server Canceled')
         return cancel();
       }
       if (info.meta.name === 'keep_alive') cancel();
@@ -297,9 +283,7 @@ export class Conn {
     });
     if (options?.toClientMiddleware) pclient.toClientMiddlewares.push(...options.toClientMiddleware);
     if (options?.toServerMiddleware) {
-      // console.info('Added additional toServer middleware')
       pclient.toServerMiddlewares.push(...options.toServerMiddleware);
-      // console.info(pclient.toServerMiddlewares)
     }
   }
 
@@ -319,7 +303,6 @@ export class Conn {
    * @param pclient
    */
   sendPackets(pclient: Client) {
-    // console.info('sendPackets')
     this.generatePackets(pclient).forEach((packet) => pclient.write(...packet));
   }
 
@@ -343,9 +326,6 @@ export class Conn {
     console.info('Client Attached');
     if (!this.pclients.includes(pclient)) {
       this.registerNewPClient(pclient, options);
-      // if (options && options.toClientMiddleware) pclient.toClientMiddleware = options.toClientMiddleware;
-      // this.pclients.push(pclient);
-      // this.options.events.map(customizeClientEvents(this, pclient)).forEach(([event, listener]) => pclient.on(event, listener));
     }
     if (!this.receivingPclients.includes(pclient)) {
       this.receivingPclients.push(pclient);
@@ -357,7 +337,6 @@ export class Conn {
   detach(pclient: Client) {
     console.info('Client Detached');
     this.receivingPclients = this.pclients.filter((client) => client !== pclient);
-    // this.options.events.map(customizeClientEvents(this, pclient)).forEach(([event, listener]) => pclient.removeListener(event, listener));
     if (this.writingPclient === pclient) this.unlink();
   }
 
