@@ -18,7 +18,8 @@
   "types": "lib/index.d.ts",
   "scripts": {
     "build": "npx tsc",
-    "prepublish": "npm run build"
+    "prepublish": "npm run build",
+    "postinstall": "npm run build"
   },
   "prettier": "@rob9315/prettier-config",
   "dependencies": {
