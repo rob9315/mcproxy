@@ -182,7 +182,7 @@ export class Conn {
       }
       if (cancel.isCanceled === false) {
         if (!update.isUpdated && this.optimizePacketWrite) {
-          pclient.writeRaw(buffer);
+          this.writeRaw(buffer);
           return;
         }
         // TODO: figure out what packet is breaking crafting on 2b2t
