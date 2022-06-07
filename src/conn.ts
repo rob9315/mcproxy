@@ -265,40 +265,6 @@ export class Conn {
   }
 
   /**
-   * Register new pclient (connection coming from mc-protocol server) to the list of pclient. This does not make
-   * the registered client a receiving client. For a client to be a receiving client, it must be added to the
-   * {@link receivingPclients} array.
-   * @param pclient
-   * @param options
-   */
-  registerNewPClient(pclient: Client, options?: { toClientMiddleware?: PacketMiddleware[]; toServerMiddleware?: PacketMiddleware[] }) {
-    this._clientServerDefaultMiddleware(pclient);
-    this._serverClientDefaultMiddleware(pclient);
-    this.pclients.push(pclient);
-    const packetListener = (data: any, meta: PacketMeta, buffer: Buffer) => this.onClientPacket(data, meta, buffer, pclient);
-    pclient.on('packet', packetListener);
-    pclient.once('end', () => {
-      this.unregisterPClient(pclient);
-      pclient.removeListener('packet', packetListener);
-    });
-    if (options?.toClientMiddleware) pclient.toClientMiddlewares.push(...options.toClientMiddleware);
-    if (options?.toServerMiddleware) {
-      pclient.toServerMiddlewares.push(...options.toServerMiddleware);
-    }
-  }
-
-  /**
-   * Un-register a client.
-   * Assume .end() was called on pclient. Don't send any more packets and don't listen for any new packets received.
-   * @param pclient Client
-   */
-  unregisterPClient(pclient: Client) {
-    this.pclients = this.pclients.filter((c) => c !== pclient);
-    this.receivingPclients = this.receivingPclients.filter((c) => c !== pclient);
-    if (this.writingPclient === pclient) this.unlink();
-  }
-
-  /**
    * Send all packets to a client that are required to login to a server.
    * @param pclient
    */
@@ -323,9 +289,20 @@ export class Conn {
    * @param options
    */
   attach(pclient: Client, options?: { toClientMiddleware?: PacketMiddleware[]; toServerMiddleware?: PacketMiddleware[] }) {
-    console.info('Client Attached');
     if (!this.pclients.includes(pclient)) {
-      this.registerNewPClient(pclient, options);
+      this._clientServerDefaultMiddleware(pclient);
+      this._serverClientDefaultMiddleware(pclient);
+      this.pclients.push(pclient);
+      const packetListener = (data: any, meta: PacketMeta, buffer: Buffer) => this.onClientPacket(data, meta, buffer, pclient);
+      pclient.on('packet', packetListener);
+      pclient.once('end', () => {
+        pclient.removeListener('packet', packetListener);
+        this.detach(pclient);
+      });
+      if (options?.toClientMiddleware) pclient.toClientMiddlewares.push(...options.toClientMiddleware);
+      if (options?.toServerMiddleware) {
+        pclient.toServerMiddlewares.push(...options.toServerMiddleware);
+      }
     }
     if (!this.receivingPclients.includes(pclient)) {
       this.receivingPclients.push(pclient);
@@ -335,8 +312,9 @@ export class Conn {
   //* a client that isn't attached anymore will no longer receive packets from the server
   //* if the client was the main client, it will also be unlinked.
   detach(pclient: Client) {
-    console.info('Client Detached');
-    this.unregisterPClient(pclient);
+    this.pclients = this.pclients.filter((c) => c !== pclient);
+    this.receivingPclients = this.receivingPclients.filter((c) => c !== pclient);
+    if (this.writingPclient === pclient) this.unlink();
   }
 
   //* linking means being the main client on the connection, being able to write to the server
