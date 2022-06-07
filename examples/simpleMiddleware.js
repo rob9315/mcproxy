@@ -1,3 +1,5 @@
+// import mcproxy, replace ".."
+// with "@rob9315/mcproxy" in your project
 const { Conn } = require('..');
 const { createServer } = require('minecraft-protocol');
 const wait = require('util').promisify(setTimeout);
