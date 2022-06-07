@@ -132,22 +132,12 @@ export class Conn {
       // Hint: It is the recipes unlock packet that is send when crafting an item.
       // Probably some bad unlocked recipes packet reconstruction on login that is causing packets send after to crash the client.
 
-      if (cancel.isCanceled === false) {
-        if (!update.isUpdated && !this.optimizePacketWrite) {
-          pclient.writeRaw(buffer);
-          return;
-        }
-        if (this.optimizePacketWrite) {
-          // @ts-ignore-error
-          const packetBuff = pclient.serializer.createPacketBuffer({ name: meta.name, params: packetData });
-          if (!bufferEqual(buffer, packetBuff)) {
-            console.log('client<-server: Error in packet ' + meta.state + '.' + meta.name + ' This packet is breaking the proxy. Ping @Ic3Tank on NextGen discord');
-            pclient.writeRaw(buffer);
-            return;
-          }
-        }
-        pclient.write(meta.name, packetData);
+      if (cancel.isCanceled !== false) return
+      if (!update.isUpdated && this.optimizePacketWrite) {
+        pclient.writeRaw(buffer);
+        return;
       }
+      pclient.write(meta.name, packetData);
     }
   }
 
@@ -180,23 +170,12 @@ export class Conn {
           await funcReturn;
         }
       }
-      if (cancel.isCanceled === false) {
-        if (!update.isUpdated && this.optimizePacketWrite) {
-          this.writeRaw(buffer);
-          return;
-        }
-        // TODO: figure out what packet is breaking crafting on 2b2t
-        if (this.optimizePacketWrite) {
-          // @ts-ignore-error
-          const packetBuff = pclient.serializer.createPacketBuffer(data);
-          if (!bufferEqual(buffer, packetBuff)) {
-            console.log('server<-client: Error in packet ' + meta.state + '.' + meta.name + ' This packet is breaking the proxy. Ping @Ic3Tank on NextGen discord');
-            this.writeRaw(buffer);
-            return;
-          }
-        }
-        this.write(meta.name, data);
+      if (cancel.isCanceled !== false) return
+      if (!update.isUpdated && this.optimizePacketWrite) {
+        this.writeRaw(buffer);
+        return;
       }
+      this.write(meta.name, data);
     };
     handle().catch(console.error);
   }
