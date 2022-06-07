@@ -22,7 +22,7 @@ export class ConnOptions {
   toServerMiddleware?: PacketMiddleware[] = [() => {}];
 }
 
-export interface packetCanceler {
+export interface PacketCanceler {
   /** Has property .isCanceled: boolean indicating if the packet has been canceled by another middleware.
    * Use `cancel(false)` to un-cancel the packet again.
    */
@@ -53,7 +53,7 @@ export interface PacketMiddleware {
     },
     /** The client connected to this packet */ pclient: Client,
     /** Parsed packet data as returned by nmp */ data: any,
-    /** A handle to cancel a packet from being send. Can also force a packet to be send */ cancel: packetCanceler,
+    /** A handle to cancel a packet from being send. Can also force a packet to be send */ cancel: PacketCanceler,
     /** Indicate that a packet has been modified */ update: packetUpdater
   ): void | Promise<void>;
 }
@@ -108,7 +108,7 @@ export class Conn {
         return;
       }
       // Build packet canceler function used by middleware
-      const cancel: packetCanceler = Object.assign(
+      const cancel: PacketCanceler = Object.assign(
         (unCancel: boolean = false) => {
           cancel.isCanceled = unCancel ? false : true;
           update.isUpdated = true;
@@ -160,7 +160,7 @@ export class Conn {
   onClientPacket(data: any, meta: PacketMeta, buffer: Buffer, pclient: Client) {
     const handle = async () => {
       // Build packet canceler function used by middleware
-      const cancel: packetCanceler = Object.assign(
+      const cancel: PacketCanceler = Object.assign(
         (unCancel: boolean = false) => {
           cancel.isCanceled = unCancel ? false : true;
           update.isUpdated = true;
