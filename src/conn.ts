@@ -65,11 +65,11 @@ export class Conn {
   private internalWhitelist: string[] = ['keep_alive'];
   optimizePacketWrite: boolean = true;
   /** Contains the currently writing client or undefined if there is none */
-  writingPclient: Client | undefined;
+  writingClient: Client | undefined;
   /** Contains clients that are actively receiving packets from the proxy bot */
-  receivingPclients: Client[] = [];
+  receivingClients: Client[] = [];
   /** Contains all connected clients. Even when they are not receiving or sending any packets */
-  pclients: Client[] = [];
+  pClients: Client[] = [];
   toClientDefaultMiddleware?: PacketMiddleware[] = undefined;
   toServerDefaultMiddleware?: PacketMiddleware[] = undefined;
   write: (name: string, data: any) => void = () => {};
@@ -79,8 +79,8 @@ export class Conn {
     this.options = { ...new ConnOptions(), ...options };
     this.bot = createBot(botOptions) as any;
     this.bot.recipes = [];
-    this.receivingPclients = [];
-    this.pclients = [];
+    this.receivingClients = [];
+    this.pClients = [];
     this.write = this.bot._client.write.bind(this.bot._client);
     this.writeRaw = this.bot._client.writeRaw.bind(this.bot._client);
     this.writeChannel = this.bot._client.writeChannel.bind(this.bot._client);
@@ -103,7 +103,7 @@ export class Conn {
   async onServerRaw(buffer: Buffer, meta: PacketMeta) {
     // @ts-ignore-error
     const packetData = this.bot._client.deserializer.parsePacketBuffer(buffer).data.params;
-    for (const pclient of this.receivingPclients) {
+    for (const pclient of this.receivingClients) {
       if (pclient.state !== states.PLAY || meta.state !== states.PLAY) {
         return;
       }
@@ -187,7 +187,7 @@ export class Conn {
   _serverClientDefaultMiddleware(pclient: Client) {
     if (!pclient.toClientMiddlewares) pclient.toClientMiddlewares = [];
     const _internalMcProxyServerClient: PacketMiddleware = (info, pclient, data, cancel, update) => {
-      if (!this.receivingPclients.includes(pclient)) return cancel();
+      if (!this.receivingClients.includes(pclient)) return cancel();
     };
     pclient.toClientMiddlewares.push(_internalMcProxyServerClient);
   }
@@ -210,7 +210,7 @@ export class Conn {
         });
         cancel();
       }
-      if (this.writingPclient !== pclient) {
+      if (this.writingClient !== pclient) {
         return cancel();
       }
       if (info.meta.name === 'keep_alive') cancel();
@@ -268,10 +268,10 @@ export class Conn {
    * @param options
    */
   attach(pclient: Client, options?: { toClientMiddleware?: PacketMiddleware[]; toServerMiddleware?: PacketMiddleware[] }) {
-    if (!this.pclients.includes(pclient)) {
+    if (!this.pClients.includes(pclient)) {
       this._clientServerDefaultMiddleware(pclient);
       this._serverClientDefaultMiddleware(pclient);
-      this.pclients.push(pclient);
+      this.pClients.push(pclient);
       const packetListener = (data: any, meta: PacketMeta, buffer: Buffer) => this.onClientPacket(data, meta, buffer, pclient);
       pclient.on('packet', packetListener);
       pclient.once('end', () => {
@@ -283,23 +283,24 @@ export class Conn {
         pclient.toServerMiddlewares.push(...options.toServerMiddleware);
       }
     }
-    if (!this.receivingPclients.includes(pclient)) {
-      this.receivingPclients.push(pclient);
+    if (!this.receivingClients.includes(pclient)) {
+      this.receivingClients.push(pclient);
     }
   }
   //* reverses attaching
   //* a client that isn't attached anymore will no longer receive packets from the server
   //* if the client was the main client, it will also be unlinked.
   detach(pclient: Client) {
-    this.pclients = this.pclients.filter((c) => c !== pclient);
-    this.receivingPclients = this.receivingPclients.filter((c) => c !== pclient);
-    if (this.writingPclient === pclient) this.unlink();
+    this.pClients = this.pClients.filter((c) => c !== pclient);
+    this.receivingClients = this.receivingClients.filter((c) => c !== pclient);
+    if (this.writingClient === pclient) this.unlink();
   }
 
   //* linking means being the main client on the connection, being able to write to the server
   //* if not previously attached, this will do so.
   link(pclient: Client, options?: { toClientMiddleware?: PacketMiddleware[] }) {
-    this.writingPclient = pclient;
+    if (this.writingClient) this.unlink(); // Does this even matter? Maybe just keep it for future use when unlink does more.
+    this.writingClient = pclient;
     this.bot._client.write = this.writeIf.bind(this);
     this.bot._client.writeRaw = () => {};
     this.bot._client.writeChannel = () => {};
@@ -308,11 +309,11 @@ export class Conn {
   //* reverses linking
   //* doesn't remove the client from the pclients array, it is still attached
   unlink() {
-    if (this.writingPclient) {
+    if (this.writingClient) {
       this.bot._client.write = this.write.bind(this.bot._client);
       this.bot._client.writeRaw = this.writeRaw.bind(this.bot._client);
       this.bot._client.writeChannel = this.writeChannel.bind(this.bot._client);
-      this.writingPclient = undefined;
+      this.writingClient = undefined;
     }
   }
 
@@ -323,6 +324,6 @@ export class Conn {
   //* disconnect from the server and ends, detaches all pclients
   disconnect() {
     this.bot._client.end('conn: disconnect called');
-    this.receivingPclients.forEach(this.detach.bind(this));
+    this.receivingClients.forEach(this.detach.bind(this));
   }
 }
