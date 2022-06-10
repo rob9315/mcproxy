@@ -129,7 +129,7 @@ export class Conn {
       // Hint: It is the recipes unlock packet that is send when crafting an item.
       // Probably some bad unlocked recipes packet reconstruction on login that is causing packets send after to crash the client.
 
-      if (cancel.isCanceled !== false) return
+      if (cancel.isCanceled !== false) return;
       if (!update.isUpdated && this.optimizePacketWrite) {
         pclient.writeRaw(buffer);
         return;
@@ -167,7 +167,7 @@ export class Conn {
           await funcReturn;
         }
       }
-      if (cancel.isCanceled !== false) return
+      if (cancel.isCanceled !== false) return;
       if (!update.isUpdated && this.optimizePacketWrite) {
         this.writeRaw(buffer);
         return;
