@@ -68,8 +68,6 @@ export class Conn {
   writingClient: Client | undefined;
   /** Contains clients that are actively receiving packets from the proxy bot */
   receivingClients: Client[] = [];
-  /** Contains all connected clients. Even when they are not receiving or sending any packets */
-  pClients: Client[] = [];
   toClientDefaultMiddleware?: PacketMiddleware[] = undefined;
   toServerDefaultMiddleware?: PacketMiddleware[] = undefined;
   write: (name: string, data: any) => void = () => {};
@@ -80,7 +78,6 @@ export class Conn {
     this.bot = createBot(botOptions) as any;
     this.bot.recipes = [];
     this.receivingClients = [];
-    this.pClients = [];
     this.write = this.bot._client.write.bind(this.bot._client);
     this.writeRaw = this.bot._client.writeRaw.bind(this.bot._client);
     this.writeChannel = this.bot._client.writeChannel.bind(this.bot._client);
@@ -214,7 +211,6 @@ export class Conn {
         return cancel();
       }
       if (info.meta.name === 'keep_alive') cancel();
-      // console.info(info.meta.name, 'Client -> Server not Canceled', this.writingPclient, pclient)
       //* keep mineflayer info up to date
       switch (name) {
         case 'position':
@@ -268,10 +264,10 @@ export class Conn {
    * @param options
    */
   attach(pclient: Client, options?: { toClientMiddleware?: PacketMiddleware[]; toServerMiddleware?: PacketMiddleware[] }) {
-    if (!this.pClients.includes(pclient)) {
+    if (!this.receivingClients.includes(pclient)) {
       this._clientServerDefaultMiddleware(pclient);
       this._serverClientDefaultMiddleware(pclient);
-      this.pClients.push(pclient);
+      this.receivingClients.push(pclient);
       const packetListener = (data: any, meta: PacketMeta, buffer: Buffer) => this.onClientPacket(data, meta, buffer, pclient);
       pclient.on('packet', packetListener);
       pclient.once('end', () => {
@@ -283,31 +279,39 @@ export class Conn {
         pclient.toServerMiddlewares.push(...options.toServerMiddleware);
       }
     }
-    if (!this.receivingClients.includes(pclient)) {
-      this.receivingClients.push(pclient);
-    }
-  }
-  //* reverses attaching
-  //* a client that isn't attached anymore will no longer receive packets from the server
-  //* if the client was the main client, it will also be unlinked.
-  detach(pclient: Client) {
-    this.pClients = this.pClients.filter((c) => c !== pclient);
-    this.receivingClients = this.receivingClients.filter((c) => c !== pclient);
-    if (this.writingClient === pclient) this.unlink();
   }
 
-  //* linking means being the main client on the connection, being able to write to the server
-  //* if not previously attached, this will do so.
-  link(pclient: Client, options?: { toClientMiddleware?: PacketMiddleware[] }) {
+  /**
+   * Reverse attaching
+   * a client that isn't attached anymore will no longer receive packets from the server.
+   * if the client was the writing client, it will also be unlinked.
+   * @param pClient Client to detach
+   */
+  detach(pClient: Client) {
+    this.receivingClients = this.receivingClients.filter((c) => c !== pClient);
+    if (this.writingClient === pClient) this.unlink();
+  }
+
+  /**
+   * Linking means being the one client on the connection that is able to write to the server replacing the bot or other
+   * connected clients that are currently writing.
+   * If not previously attached, this will do so.
+   * @param pClient Client to link
+   * @param options Extra options like extra middleware to be used for the client.
+   */
+  link(pClient: Client, options?: { toClientMiddleware?: PacketMiddleware[] }) {
     if (this.writingClient) this.unlink(); // Does this even matter? Maybe just keep it for future use when unlink does more.
-    this.writingClient = pclient;
+    this.writingClient = pClient;
     this.bot._client.write = this.writeIf.bind(this);
     this.bot._client.writeRaw = () => {};
     this.bot._client.writeChannel = () => {};
-    this.attach(pclient, options);
+    this.attach(pClient, options);
   }
-  //* reverses linking
-  //* doesn't remove the client from the pclients array, it is still attached
+
+  /**
+   * Reverse linking.
+   * Doesn't remove the client from the receivingClients array, it is still attached.
+   */
   unlink() {
     if (this.writingClient) {
       this.bot._client.write = this.write.bind(this.bot._client);
