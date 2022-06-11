@@ -12,6 +12,8 @@ export type ClientEvents = (ClientEventTuple | ((conn: Conn, pclient: Client) =>
 export type Client = mcpClient & {
   toClientMiddlewares: PacketMiddleware[];
   toServerMiddlewares: PacketMiddleware[];
+
+  on(event: 'mcproxy:detach', listener: () => void): void;
 };
 
 export class ConnOptions {
@@ -269,9 +271,13 @@ export class Conn {
       this._serverClientDefaultMiddleware(pclient);
       this.receivingClients.push(pclient);
       const packetListener = (data: any, meta: PacketMeta, buffer: Buffer) => this.onClientPacket(data, meta, buffer, pclient);
-      pclient.on('packet', packetListener);
-      pclient.once('end', () => {
+      const cleanup = () => {
         pclient.removeListener('packet', packetListener);
+      };
+      pclient.on('packet', packetListener);
+      pclient.once('mcproxy:detach', () => cleanup());
+      pclient.once('end', () => {
+        cleanup();
         this.detach(pclient);
       });
       if (options?.toClientMiddleware) pclient.toClientMiddlewares.push(...options.toClientMiddleware);
@@ -289,6 +295,7 @@ export class Conn {
    */
   detach(pClient: Client) {
     this.receivingClients = this.receivingClients.filter((c) => c !== pClient);
+    pClient.emit('mcproxy:detach');
     if (this.writingClient === pClient) this.unlink();
   }
 
