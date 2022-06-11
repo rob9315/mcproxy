@@ -102,6 +102,30 @@ export class Conn {
   async onServerRaw(buffer: Buffer, meta: PacketMeta) {
     // @ts-ignore-error
     const packetData = this.bot._client.deserializer.parsePacketBuffer(buffer).data.params;
+    //* keep mineflayer info up to date
+    switch (meta.name) {
+      case 'position':
+        this.bot.entity.position.x = packetData.x;
+        this.bot.entity.position.y = packetData.y;
+        this.bot.entity.position.z = packetData.z;
+        this.bot.entity.onGround = packetData.onGround;
+        break;
+      case 'position_look': // FALLTHROUGH
+        this.bot.entity.position.x = packetData.x;
+        this.bot.entity.position.y = packetData.y;
+        this.bot.entity.position.z = packetData.z;
+      case 'look':
+        this.bot.entity.yaw = ((180 - packetData.yaw) * Math.PI) / 180;
+        this.bot.entity.pitch = -(packetData.pitch * Math.PI) / 180;
+        this.bot.entity.onGround = packetData.onGround;
+        break;
+      case 'held_item_slot':
+        this.bot.quickBarSlot = packetData.slotId;
+        break;
+      case 'abilities':
+        this.bot.physicsEnabled = !!((packetData.flags & 0b10) ^ 0b10);
+        break;
+    }
     for (const pclient of this.receivingClients) {
       if (pclient.state !== states.PLAY || meta.state !== states.PLAY) {
         return;
@@ -198,8 +222,6 @@ export class Conn {
   _clientServerDefaultMiddleware(pclient: Client) {
     if (!pclient.toServerMiddlewares) pclient.toServerMiddlewares = [];
     const _internalMcProxyClientServer: PacketMiddleware = (info, pclient, data: any, cancel) => {
-      const name = info.meta.name;
-      //* check if client is authorized to modify connection (sending packets and state information from mineflayer)
       if (info.meta.name === 'teleport_confirm' && data?.teleportId === 0) {
         pclient.write('position', {
           ...this.bot.entity.position,
@@ -209,34 +231,11 @@ export class Conn {
         });
         cancel();
       }
+      //* check if client is authorized to modify connection (sending packets and state information from mineflayer)
       if (this.writingClient !== pclient) {
         return cancel();
       }
       if (info.meta.name === 'keep_alive') cancel();
-      //* keep mineflayer info up to date
-      switch (name) {
-        case 'position':
-          this.bot.entity.position.x = data.x;
-          this.bot.entity.position.y = data.y;
-          this.bot.entity.position.z = data.z;
-          this.bot.entity.onGround = data.onGround;
-          break;
-        case 'position_look': // FALLTHROUGH
-          this.bot.entity.position.x = data.x;
-          this.bot.entity.position.y = data.y;
-          this.bot.entity.position.z = data.z;
-        case 'look':
-          this.bot.entity.yaw = ((180 - data.yaw) * Math.PI) / 180;
-          this.bot.entity.pitch = -(data.pitch * Math.PI) / 180;
-          this.bot.entity.onGround = data.onGround;
-          break;
-        case 'held_item_slot':
-          this.bot.quickBarSlot = data.slotId;
-          break;
-        case 'abilities':
-          this.bot.physicsEnabled = !!((data.flags & 0b10) ^ 0b10);
-          break;
-      }
     };
     pclient.toServerMiddlewares.push(_internalMcProxyClientServer.bind(this));
   }
