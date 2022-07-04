@@ -128,7 +128,7 @@ export class Conn {
     }
     for (const pclient of this.receivingClients) {
       if (pclient.state !== states.PLAY || meta.state !== states.PLAY) {
-        return;
+        continue;
       }
       // Build packet canceler function used by middleware
       const cancel: PacketCanceler = Object.assign(
@@ -155,10 +155,10 @@ export class Conn {
       // Hint: It is the recipes unlock packet that is send when crafting an item.
       // Probably some bad unlocked recipes packet reconstruction on login that is causing packets send after to crash the client.
 
-      if (cancel.isCanceled !== false) return;
+      if (cancel.isCanceled !== false) continue;
       if (!update.isUpdated && this.optimizePacketWrite) {
         pclient.writeRaw(buffer);
-        return;
+        continue;
       }
       pclient.write(meta.name, packetData);
     }
