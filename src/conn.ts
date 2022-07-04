@@ -14,6 +14,7 @@ export type Client = mcpClient & {
   toServerMiddlewares: PacketMiddleware[];
 
   on(event: 'mcproxy:detach', listener: () => void): void;
+  on(event: 'mcproxy:heldItemSlotUpdate', listener: () => void): void;
 };
 
 export class ConnOptions {
@@ -234,6 +235,41 @@ export class Conn {
       //* check if client is authorized to modify connection (sending packets and state information from mineflayer)
       if (this.writingClient !== pclient) {
         return cancel();
+      }
+      // Keep the bot updated
+      // Note: Packets seam to be the exact same going from server to client and the other way around.
+      // At least for 1.12.2. So this is just copy past from onServerRaw
+      const botPos = this.bot.entity.position.clone()
+      const { yaw: lastYaw, pitch: lastPitch } = this.bot.entity
+      switch (info.meta.name) {
+        case 'position':
+          this.bot.entity.position.x = data.x;
+          this.bot.entity.position.y = data.y;
+          this.bot.entity.position.z = data.z;
+          this.bot.entity.onGround = data.onGround;
+          if (botPos.distanceTo(data) !== 0) {
+            this.bot.emit('move')
+          }
+          break;
+        case 'position_look': // FALLTHROUGH
+          this.bot.entity.position.x = data.x;
+          this.bot.entity.position.y = data.y;
+          this.bot.entity.position.z = data.z;
+        case 'look':
+          this.bot.entity.yaw = ((180 - data.yaw) * Math.PI) / 180;
+          this.bot.entity.pitch = -(data.pitch * Math.PI) / 180;
+          this.bot.entity.onGround = data.onGround;
+          if (botPos.distanceTo(data) !== 0 || lastPitch !== data.pitch || lastYaw !== data.yaw) {
+            this.bot.emit('move')
+          }
+          break;
+        case 'held_item_slot':
+          this.bot.quickBarSlot = data.slotId;
+          this.bot._client.emit('mcproxy:heldItemSlotUpdate') // lol idk how to do it better
+          break;
+        case 'abilities':
+          this.bot.physicsEnabled = !!((data.flags & 0b10) ^ 0b10);
+          break;
       }
       if (info.meta.name === 'keep_alive') cancel();
     };
