@@ -124,7 +124,7 @@ export class Conn {
         this.bot.quickBarSlot = packetData.slotId;
         break;
       case 'abilities':
-        this.bot.physicsEnabled = !!((packetData.flags & 0b10) ^ 0b10);
+        this.bot.physicsEnabled = !this.writingClient && !!((packetData.flags & 0b10) ^ 0b10);
         break;
     }
     for (const pclient of this.receivingClients) {
@@ -268,7 +268,7 @@ export class Conn {
           this.bot._client.emit('mcproxy:heldItemSlotUpdate') // lol idk how to do it better
           break;
         case 'abilities':
-          this.bot.physicsEnabled = !!((data.flags & 0b10) ^ 0b10);
+          this.bot.physicsEnabled = !this.writingClient && !!((data.flags & 0b10) ^ 0b10);
           break;
       }
       if (info.meta.name === 'keep_alive') cancel();
@@ -344,6 +344,7 @@ export class Conn {
   link(pClient: Client, options?: { toClientMiddleware?: PacketMiddleware[] }) {
     if (this.writingClient) this.unlink(); // Does this even matter? Maybe just keep it for future use when unlink does more.
     this.writingClient = pClient;
+    this.bot.physicsEnabled = false
     this.bot._client.write = this.writeIf.bind(this);
     this.bot._client.writeRaw = () => {};
     this.bot._client.writeChannel = () => {};
@@ -356,6 +357,7 @@ export class Conn {
    */
   unlink() {
     if (this.writingClient) {
+      this.bot.physicsEnabled = true
       this.bot._client.write = this.write.bind(this.bot._client);
       this.bot._client.writeRaw = this.writeRaw.bind(this.bot._client);
       this.bot._client.writeChannel = this.writeChannel.bind(this.bot._client);
