@@ -239,17 +239,13 @@ export class Conn {
       // Keep the bot updated
       // Note: Packets seam to be the exact same going from server to client and the other way around.
       // At least for 1.12.2. So this is just copy past from onServerRaw
-      const botPos = this.bot.entity.position.clone()
-      const { yaw: lastYaw, pitch: lastPitch } = this.bot.entity
       switch (info.meta.name) {
         case 'position':
           this.bot.entity.position.x = data.x;
           this.bot.entity.position.y = data.y;
           this.bot.entity.position.z = data.z;
           this.bot.entity.onGround = data.onGround;
-          if (botPos.distanceTo(data) !== 0) {
-            this.bot.emit('move')
-          }
+          this.bot.emit('move') // If bot is not in control physics are turned off
           break;
         case 'position_look': // FALLTHROUGH
           this.bot.entity.position.x = data.x;
@@ -259,9 +255,7 @@ export class Conn {
           this.bot.entity.yaw = ((180 - data.yaw) * Math.PI) / 180;
           this.bot.entity.pitch = -(data.pitch * Math.PI) / 180;
           this.bot.entity.onGround = data.onGround;
-          if (botPos.distanceTo(data) !== 0 || lastPitch !== data.pitch || lastYaw !== data.yaw) {
-            this.bot.emit('move')
-          }
+          this.bot.emit('move') // If bot is not in control physics are turned off
           break;
         case 'held_item_slot':
           this.bot.quickBarSlot = data.slotId;
