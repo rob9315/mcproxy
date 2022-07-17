@@ -141,7 +141,7 @@ export class Conn {
       );
       const update: packetUpdater = Object.assign(
         (unUpdate: boolean = false) => {
-          update.isUpdated = !!unUpdate;
+          update.isUpdated = !unUpdate;
         },
         { isUpdated: false }
       );
@@ -183,7 +183,7 @@ export class Conn {
       );
       const update: packetUpdater = Object.assign(
         (unUpdate: boolean = false) => {
-          update.isUpdated = !!unUpdate;
+          update.isUpdated = !unUpdate;
         },
         { isUpdated: false }
       );
