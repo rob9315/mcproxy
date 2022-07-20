@@ -101,6 +101,7 @@ export class Conn {
    * @returns
    */
   async onServerRaw(buffer: Buffer, meta: PacketMeta) {
+    if (meta.state !== 'play') return;
     // @ts-ignore-error
     const packetData = this.bot._client.deserializer.parsePacketBuffer(buffer).data.params;
     //* keep mineflayer info up to date
@@ -172,6 +173,7 @@ export class Conn {
    * @param pclient Sending Client
    */
   onClientPacket(data: any, meta: PacketMeta, buffer: Buffer, pclient: Client) {
+    if (meta.state !== 'play') return;
     const handle = async () => {
       // Build packet canceler function used by middleware
       const cancel: PacketCanceler = Object.assign(
@@ -214,6 +216,7 @@ export class Conn {
       if (!this.receivingClients.includes(pclient)) return cancel();
     };
     pclient.toClientMiddlewares.push(_internalMcProxyServerClient);
+    if (this.toClientDefaultMiddleware) pclient.toClientMiddlewares.push(...this.toClientDefaultMiddleware);
   }
 
   /**
@@ -223,6 +226,7 @@ export class Conn {
   _clientServerDefaultMiddleware(pclient: Client) {
     if (!pclient.toServerMiddlewares) pclient.toServerMiddlewares = [];
     const _internalMcProxyClientServer: PacketMiddleware = (info, pclient, data: any, cancel) => {
+      if (info.meta.state !== 'play') return cancel();
       if (info.meta.name === 'teleport_confirm' && data?.teleportId === 0) {
         pclient.write('position', {
           ...this.bot.entity.position,
@@ -268,6 +272,7 @@ export class Conn {
       if (info.meta.name === 'keep_alive') cancel();
     };
     pclient.toServerMiddlewares.push(_internalMcProxyClientServer.bind(this));
+    if (this.toServerDefaultMiddleware) pclient.toServerMiddlewares.push(...this.toServerDefaultMiddleware);
   }
 
   /**
