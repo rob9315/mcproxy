@@ -122,7 +122,7 @@ export class Conn {
         this.bot.entity.onGround = packetData.onGround;
         break;
       case 'held_item_slot':
-        this.bot.quickBarSlot = packetData.slotId;
+        this.bot.quickBarSlot = packetData.slot; // Carefull S->C is slot where C->S is slotId (????)
         break;
       case 'abilities':
         this.bot.physicsEnabled = !this.writingClient && !!((packetData.flags & 0b10) ^ 0b10);
@@ -262,7 +262,7 @@ export class Conn {
           this.bot.emit('move') // If bot is not in control physics are turned off
           break;
         case 'held_item_slot':
-          this.bot.quickBarSlot = data.slotId;
+          this.bot.quickBarSlot = data.slot;
           this.bot._client.emit('mcproxy:heldItemSlotUpdate') // lol idk how to do it better
           break;
         case 'abilities':
