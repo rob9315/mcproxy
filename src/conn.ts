@@ -249,7 +249,7 @@ export class Conn {
           this.bot.entity.position.y = data.y;
           this.bot.entity.position.z = data.z;
           this.bot.entity.onGround = data.onGround;
-          this.bot.emit('move') // If bot is not in control physics are turned off
+          this.bot.emit('move', this.bot.entity.position) // If bot is not in control physics are turned off
           break;
         case 'position_look': // FALLTHROUGH
           this.bot.entity.position.x = data.x;
@@ -259,7 +259,7 @@ export class Conn {
           this.bot.entity.yaw = ((180 - data.yaw) * Math.PI) / 180;
           this.bot.entity.pitch = -(data.pitch * Math.PI) / 180;
           this.bot.entity.onGround = data.onGround;
-          this.bot.emit('move') // If bot is not in control physics are turned off
+          this.bot.emit('move', this.bot.entity.position) // If bot is not in control physics are turned off
           break;
         case 'held_item_slot':
           this.bot.quickBarSlot = data.slot;
