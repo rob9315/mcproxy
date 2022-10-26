@@ -1,6 +1,8 @@
 import { Bot, BotOptions, createBot } from 'mineflayer';
-import type { Client as mcpClient } from 'minecraft-protocol';
-import { generatePackets } from './packets';
+import type { Client as mcpClient, PacketMeta } from 'minecraft-protocol';
+import { states } from 'minecraft-protocol';
+import { getLoginSequencePackets } from './packets';
+const bufferEqual = require('buffer-equal');
 
 export type Packet = [name: string, data: any];
 
@@ -8,29 +10,69 @@ export type ClientEventTuple = [event: string, listener: (...args: any) => void]
 export type ClientEvents = (ClientEventTuple | ((conn: Conn, pclient: Client) => ClientEventTuple))[];
 
 export type Client = mcpClient & {
-  //* whitelist overwrites not being the main pclient
-  toServerWhiteList?: string[];
-  //* filter for when the client is the main client
-  toServerBlackList?: string[];
-  //* filter when the client is attached
-  toClientBlackList?: string[];
+  toClientMiddlewares: PacketMiddleware[];
+  toServerMiddlewares: PacketMiddleware[];
+
+  on(event: 'mcproxy:detach', listener: () => void): void;
+  on(event: 'mcproxy:heldItemSlotUpdate', listener: () => void): void;
 };
 
 export class ConnOptions {
-  events: ClientEvents = [];
-  //* a whitelist for the internal bot
-  internalWhitelist: string[] = ['keep_alive'];
-  //* filter for the main client as long as it is not overwritten by the client itself
-  toServerBlackList: string[] = ['keep_alive'];
-  //* filter for all attached clients if it is not overwritten by the client
-  toClientBlackList: string[] = ['keep_alive'];
+  optimizePacketWrite: boolean = true;
+  //* Middleware to control packets being send to the client and server
+  toClientMiddleware?: PacketMiddleware[] = [() => {}];
+  //* Middleware to control packets being send to the client and server
+  toServerMiddleware?: PacketMiddleware[] = [() => {}];
+}
+
+export interface PacketCanceler {
+  /** Has property .isCanceled: boolean indicating if the packet has been canceled by another middleware.
+   * Use `cancel(false)` to un-cancel the packet again.
+   */
+  (unCancel?: boolean): void;
+  isCanceled: boolean;
+}
+
+export interface packetUpdater {
+  (update?: boolean): void;
+  isUpdated: boolean;
+}
+
+/**
+ * Middleware manager for packets. Used to modify cancel or delay packets being send to the client or server.
+ */
+export interface PacketMiddleware {
+  /** Contains meta information about the packet that is triggered. See the properties for more info. */
+  (
+    info: {
+      /** Direction the packet is going. Should always be the same direction depending on what middleware direction you
+       * are registering.
+       */
+      bound: 'server' | 'client';
+      /** Only 'packet' is implemented */
+      writeType: 'packet' | 'rawPacket' | 'channel';
+      /** Packet meta. Contains the packet name under `name` also see {@link PacketMeta} */
+      meta: PacketMeta;
+    },
+    /** The client connected to this packet */ pclient: Client,
+    /** Parsed packet data as returned by nmp */ data: any,
+    /** A handle to cancel a packet from being send. Can also force a packet to be send */ cancel: PacketCanceler,
+    /** Indicate that a packet has been modified */ update: packetUpdater
+  ): void | Promise<void>;
 }
 
 export class Conn {
   options: ConnOptions;
   bot: Bot & { recipes: number[] };
-  pclient: Client | undefined;
-  pclients: Client[] = [];
+  /** Internal whitelist for the bot */
+  private internalWhitelist: string[] = ['keep_alive'];
+  optimizePacketWrite: boolean = true;
+  /** Contains the currently writing client or undefined if there is none */
+  writingClient: Client | undefined;
+  /** Contains clients that are actively receiving packets from the proxy bot */
+  receivingClients: Client[] = [];
+  toClientDefaultMiddleware?: PacketMiddleware[] = undefined;
+  toServerDefaultMiddleware?: PacketMiddleware[] = undefined;
   write: (name: string, data: any) => void = () => {};
   writeRaw: (buffer: any) => void = () => {};
   writeChannel: (channel: any, params: any) => void = () => {};
@@ -38,146 +80,297 @@ export class Conn {
     this.options = { ...new ConnOptions(), ...options };
     this.bot = createBot(botOptions) as any;
     this.bot.recipes = [];
+    this.receivingClients = [];
     this.write = this.bot._client.write.bind(this.bot._client);
     this.writeRaw = this.bot._client.writeRaw.bind(this.bot._client);
     this.writeChannel = this.bot._client.writeChannel.bind(this.bot._client);
-    this.bot._client.on('packet', (data, { name }, buffer) => {
-      //* relay packet to all connected clients
-      this.pclients.forEach((pclient) => {
-        if (!(pclient.toClientBlackList ?? this.options.toClientBlackList).includes(name)) pclient.writeRaw(buffer);
-      });
-      //* entity metadata tracking
-      if (data.metadata && data.entityId && this.bot.entities[data.entityId]) (this.bot.entities[data.entityId] as any).rawMetadata = data.metadata;
+    this.optimizePacketWrite = this.options.optimizePacketWrite;
+    if (options?.toClientMiddleware) this.toClientDefaultMiddleware = options.toClientMiddleware;
+    if (options?.toServerMiddleware) this.toServerDefaultMiddleware = options.toServerMiddleware;
 
-      //* recipe tracking https://wiki.vg/index.php?title=Protocol&oldid=14204#Unlock_Recipes
-      switch (name) {
-        case 'unlock_recipes':
-          switch (data.action) {
-            case 0: //* initialize
-              this.bot.recipes = data.recipes1;
-              break;
-            case 1: //* add
-              this.bot.recipes = [...this.bot.recipes, ...data.recipes1];
-              break;
-            case 2: //* remove
-              this.bot.recipes = Array.from(
-                (data.recipes1 as number[]).reduce((recipes, recipe) => {
-                  recipes.delete(recipe);
-                  return recipes;
-                }, new Set(this.bot.recipes))
-              );
-              break;
-          }
-          break;
-        case 'abilities':
-          this.bot.physicsEnabled = !!((data.flags & 0b10) ^ 0b10);
-          break;
-      }
-    });
-    this.options.events = [...defaultEvents, ...this.options.events];
+    this.internalWhitelist = ['keep_alive'];
+
+    this.bot._client.on('raw', this.onServerRaw.bind(this));
   }
 
-  //* generates and sends packets suitable to a client
+  /**
+   * Called when the proxy bot receives a packet from the server. Forwards the packet to all attached and receiving clients taking
+   * attached middleware's into account.
+   * @param buffer Buffer
+   * @param meta
+   * @returns
+   */
+  async onServerRaw(buffer: Buffer, meta: PacketMeta) {
+    if (meta.state !== 'play') return;
+    // @ts-ignore-error
+    const packetData = this.bot._client.deserializer.parsePacketBuffer(buffer).data.params;
+    //* keep mineflayer info up to date
+    switch (meta.name) {
+      case 'position':
+        this.bot.entity.position.x = packetData.x;
+        this.bot.entity.position.y = packetData.y;
+        this.bot.entity.position.z = packetData.z;
+        this.bot.entity.onGround = packetData.onGround;
+        break;
+      case 'position_look': // FALLTHROUGH
+        this.bot.entity.position.x = packetData.x;
+        this.bot.entity.position.y = packetData.y;
+        this.bot.entity.position.z = packetData.z;
+      case 'look':
+        this.bot.entity.yaw = ((180 - packetData.yaw) * Math.PI) / 180;
+        this.bot.entity.pitch = -(packetData.pitch * Math.PI) / 180;
+        this.bot.entity.onGround = packetData.onGround;
+        break;
+      case 'held_item_slot':
+        this.bot.quickBarSlot = packetData.slot; // Carefull S->C is slot where C->S is slotId (????)
+        break;
+      case 'abilities':
+        this.bot.physicsEnabled = !this.writingClient && !!((packetData.flags & 0b10) ^ 0b10);
+        break;
+    }
+    for (const pclient of this.receivingClients) {
+      if (pclient.state !== states.PLAY || meta.state !== states.PLAY) {
+        continue;
+      }
+      // Build packet canceler function used by middleware
+      const cancel: PacketCanceler = Object.assign(
+        (unCancel: boolean = false) => {
+          cancel.isCanceled = unCancel ? false : true;
+          update.isUpdated = true;
+        },
+        { isCanceled: false }
+      );
+      const update: packetUpdater = Object.assign(
+        (unUpdate: boolean = false) => {
+          update.isUpdated = !unUpdate;
+        },
+        { isUpdated: false }
+      );
+
+      for (const middleware of pclient.toClientMiddlewares) {
+        const funcReturn = middleware({ bound: 'client', meta, writeType: 'packet' }, pclient, packetData, cancel, update);
+        if (funcReturn instanceof Promise) {
+          await funcReturn;
+        }
+      }
+      // TODO: figure out what packet is breaking crafting on 2b2t
+      // Hint: It is the recipes unlock packet that is send when crafting an item.
+      // Probably some bad unlocked recipes packet reconstruction on login that is causing packets send after to crash the client.
+
+      if (cancel.isCanceled !== false) continue;
+      if (!update.isUpdated && this.optimizePacketWrite) {
+        pclient.writeRaw(buffer);
+        continue;
+      }
+      pclient.write(meta.name, packetData);
+    }
+  }
+
+  /**
+   * Handles packets send by a client to a server taking attached middleware's into account.
+   * @param data Packet data
+   * @param meta Packet Meta
+   * @param pclient Sending Client
+   */
+  onClientPacket(data: any, meta: PacketMeta, buffer: Buffer, pclient: Client) {
+    if (meta.state !== 'play') return;
+    const handle = async () => {
+      // Build packet canceler function used by middleware
+      const cancel: PacketCanceler = Object.assign(
+        (unCancel: boolean = false) => {
+          cancel.isCanceled = unCancel ? false : true;
+          update.isUpdated = true;
+        },
+        { isCanceled: false }
+      );
+      const update: packetUpdater = Object.assign(
+        (unUpdate: boolean = false) => {
+          update.isUpdated = !unUpdate;
+        },
+        { isUpdated: false }
+      );
+
+      for (const middleware of pclient.toServerMiddlewares) {
+        const funcReturn = middleware({ bound: 'server', meta, writeType: 'packet' }, pclient, data, cancel, update);
+        if (funcReturn instanceof Promise) {
+          await funcReturn;
+        }
+      }
+      if (cancel.isCanceled !== false) return;
+      if (!update.isUpdated && this.optimizePacketWrite) {
+        this.writeRaw(buffer);
+        return;
+      }
+      this.write(meta.name, data);
+    };
+    handle().catch(console.error);
+  }
+
+  /**
+   * Register middleware to be used as client to server middleware.
+   * @param pclient Client
+   */
+  _serverClientDefaultMiddleware(pclient: Client) {
+    if (!pclient.toClientMiddlewares) pclient.toClientMiddlewares = [];
+    const _internalMcProxyServerClient: PacketMiddleware = (info, pclient, data, cancel, update) => {
+      if (!this.receivingClients.includes(pclient)) return cancel();
+    };
+    pclient.toClientMiddlewares.push(_internalMcProxyServerClient);
+    if (this.toClientDefaultMiddleware) pclient.toClientMiddlewares.push(...this.toClientDefaultMiddleware);
+  }
+
+  /**
+   * Register the default (first) middleware used to control what client can interact with the current bot.
+   * @param pclient Client
+   */
+  _clientServerDefaultMiddleware(pclient: Client) {
+    if (!pclient.toServerMiddlewares) pclient.toServerMiddlewares = [];
+    const _internalMcProxyClientServer: PacketMiddleware = (info, pclient, data: any, cancel) => {
+      if (info.meta.state !== 'play') return cancel();
+      if (info.meta.name === 'teleport_confirm' && data?.teleportId === 0) {
+        pclient.write('position', {
+          ...this.bot.entity.position,
+          yaw: 180 - (this.bot.entity.yaw * 180) / Math.PI,
+          pitch: -(this.bot.entity.pitch * 180) / Math.PI,
+          teleportId: 1,
+        });
+        cancel();
+      }
+      //* check if client is authorized to modify connection (sending packets and state information from mineflayer)
+      if (this.writingClient !== pclient) {
+        return cancel();
+      }
+      // Keep the bot updated
+      // Note: Packets seam to be the exact same going from server to client and the other way around.
+      // At least for 1.12.2. So this is just copy past from onServerRaw
+      switch (info.meta.name) {
+        case 'position':
+          this.bot.entity.position.x = data.x;
+          this.bot.entity.position.y = data.y;
+          this.bot.entity.position.z = data.z;
+          this.bot.entity.onGround = data.onGround;
+          this.bot.emit('move', this.bot.entity.position) // If bot is not in control physics are turned off
+          break;
+        case 'position_look': // FALLTHROUGH
+          this.bot.entity.position.x = data.x;
+          this.bot.entity.position.y = data.y;
+          this.bot.entity.position.z = data.z;
+        case 'look':
+          this.bot.entity.yaw = ((180 - data.yaw) * Math.PI) / 180;
+          this.bot.entity.pitch = -(data.pitch * Math.PI) / 180;
+          this.bot.entity.onGround = data.onGround;
+          this.bot.emit('move', this.bot.entity.position) // If bot is not in control physics are turned off
+          break;
+        case 'held_item_slot':
+          this.bot.quickBarSlot = data.slot;
+          this.bot._client.emit('mcproxy:heldItemSlotUpdate') // lol idk how to do it better
+          break;
+        case 'abilities':
+          this.bot.physicsEnabled = !this.writingClient && !!((data.flags & 0b10) ^ 0b10);
+          break;
+      }
+      if (info.meta.name === 'keep_alive') cancel();
+    };
+    pclient.toServerMiddlewares.push(_internalMcProxyClientServer.bind(this));
+    if (this.toServerDefaultMiddleware) pclient.toServerMiddlewares.push(...this.toServerDefaultMiddleware);
+  }
+
+  /**
+   * Send all packets to a client that are required to login to a server.
+   * @param pclient
+   */
   sendPackets(pclient: Client) {
     this.generatePackets(pclient).forEach((packet) => pclient.write(...packet));
   }
-  //* generates packets ([if provided] suitable to a client)
+
+  /**
+   * Generate the login sequence off packets for a client from the current bot state. Can take the client as an optional
+   * argument to customize packets to the client state like version but is not used at the moment and defaults to 1.12.2
+   * generic packets.
+   * @param pclient Optional. Does nothing.
+   */
   generatePackets(pclient?: Client): Packet[] {
-    let a =generatePackets(this.bot, pclient);
-    // for (const packet of a ) {
-    //   console.log(packet);
-    // }
-    return a;
+    return getLoginSequencePackets(this.bot, pclient);
   }
 
-  //* attaching means receiving all packets from the server
-  attach(pclient: Client) {
-    if (!this.pclients.includes(pclient)) {
-      this.pclients.push(pclient);
-      this.options.events.map(customizeClientEvents(this, pclient)).forEach(([event, listener]) => pclient.on(event, listener));
+  /**
+   * Attaches a client to the proxy. Attaching means receiving all packets from the server. Takes middleware handlers
+   * as an optional argument to be used for the client.
+   * @param pclient
+   * @param options
+   */
+  attach(pclient: Client, options?: { toClientMiddleware?: PacketMiddleware[]; toServerMiddleware?: PacketMiddleware[] }) {
+    if (!this.receivingClients.includes(pclient)) {
+      this._clientServerDefaultMiddleware(pclient);
+      this._serverClientDefaultMiddleware(pclient);
+      this.receivingClients.push(pclient);
+      const packetListener = (data: any, meta: PacketMeta, buffer: Buffer) => this.onClientPacket(data, meta, buffer, pclient);
+      const cleanup = () => {
+        pclient.removeListener('packet', packetListener);
+      };
+      pclient.on('packet', packetListener);
+      pclient.once('mcproxy:detach', () => cleanup());
+      pclient.once('end', () => {
+        cleanup();
+        this.detach(pclient);
+      });
+      if (options?.toClientMiddleware) pclient.toClientMiddlewares.push(...options.toClientMiddleware);
+      if (options?.toServerMiddleware) {
+        pclient.toServerMiddlewares.push(...options.toServerMiddleware);
+      }
     }
   }
-  //* reverses attaching
-  //* a client that isn't attached anymore will no longer receive packets from the server
-  //* if the client was the main client, it will also be unlinked.
-  detach(pclient: Client) {
-    this.pclients = this.pclients.filter((client) => client !== pclient);
-    this.options.events.map(customizeClientEvents(this, pclient)).forEach(([event, listener]) => pclient.removeListener(event, listener));
-    if (this.pclient === pclient) this.unlink();
+
+  /**
+   * Reverse attaching
+   * a client that isn't attached anymore will no longer receive packets from the server.
+   * if the client was the writing client, it will also be unlinked.
+   * @param pClient Client to detach
+   */
+  detach(pClient: Client) {
+    this.receivingClients = this.receivingClients.filter((c) => c !== pClient);
+    pClient.emit('mcproxy:detach');
+    if (this.writingClient === pClient) this.unlink();
   }
 
-  //* linking means being the main client on the connection, being able to write to the server
-  //* if not previously attached, this will do so.
-  link(pclient: Client) {
-    this.pclient = pclient;
+  /**
+   * Linking means being the one client on the connection that is able to write to the server replacing the bot or other
+   * connected clients that are currently writing.
+   * If not previously attached, this will do so.
+   * @param pClient Client to link
+   * @param options Extra options like extra middleware to be used for the client.
+   */
+  link(pClient: Client, options?: { toClientMiddleware?: PacketMiddleware[] }) {
+    if (this.writingClient) this.unlink(); // Does this even matter? Maybe just keep it for future use when unlink does more.
+    this.writingClient = pClient;
+    this.bot.physicsEnabled = false
     this.bot._client.write = this.writeIf.bind(this);
     this.bot._client.writeRaw = () => {};
     this.bot._client.writeChannel = () => {};
-    this.attach(pclient);
+    this.attach(pClient, options);
   }
-  //* reverses linking
-  //* doesn't remove the client from the pclients array, it is still attached
+
+  /**
+   * Reverse linking.
+   * Doesn't remove the client from the receivingClients array, it is still attached.
+   */
   unlink() {
-    if (this.pclient) {
+    if (this.writingClient) {
+      this.bot.physicsEnabled = true
       this.bot._client.write = this.write.bind(this.bot._client);
       this.bot._client.writeRaw = this.writeRaw.bind(this.bot._client);
       this.bot._client.writeChannel = this.writeChannel.bind(this.bot._client);
-      this.pclient = undefined;
+      this.writingClient = undefined;
     }
   }
 
   //* internal filter
   writeIf(name: string, data: any) {
-    if (this.options.internalWhitelist.includes(name)) this.write(name, data);
+    if (this.internalWhitelist.includes(name)) this.write(name, data);
   }
   //* disconnect from the server and ends, detaches all pclients
   disconnect() {
     this.bot._client.end('conn: disconnect called');
-    this.pclients.forEach(this.detach.bind(this));
+    this.receivingClients.forEach(this.detach.bind(this));
   }
 }
-
-function customizeClientEvents(conn: Conn, pclient: Client) {
-  return function (clientEvent: ClientEventTuple | ((conn: Conn, pclient: Client) => ClientEventTuple)) {
-    return typeof clientEvent === 'function' ? clientEvent(conn, pclient) : clientEvent;
-  };
-}
-
-const defaultEvents: ClientEvents = [
-  (conn, pclient) => [
-    'packet',
-    (data, { name }, buffer) => {
-      //* check if client is authorized to modify connection (sending packets and state information from mineflayer)
-      if (pclient.toServerWhiteList?.includes(name) || (conn.pclient === pclient && !(pclient.toServerBlackList ?? conn.options.toServerBlackList).includes(name))) {
-        //* relay packet
-        conn.writeRaw(buffer);
-        //* keep mineflayer info up to date
-        switch (name) {
-          case 'position':
-            conn.bot.entity.position.x = data.x;
-            conn.bot.entity.position.y = data.y;
-            conn.bot.entity.position.z = data.z;
-            conn.bot.entity.onGround = data.onGround;
-            break;
-          case 'position_look': // FALLTHROUGH
-            conn.bot.entity.position.x = data.x;
-            conn.bot.entity.position.y = data.y;
-            conn.bot.entity.position.z = data.z;
-          case 'look':
-            conn.bot.entity.yaw = ((180 - data.yaw) * Math.PI) / 180;
-            conn.bot.entity.pitch = -(data.pitch * Math.PI) / 180;
-            conn.bot.entity.onGround = data.onGround;
-            break;
-          case 'held_item_slot':
-            conn.bot.quickBarSlot = data.slotId;
-            break;
-          case 'abilities':
-            conn.bot.physicsEnabled = !!((data.flags & 0b10) ^ 0b10);
-            break;
-        }
-      }
-    },
-  ],
-  (conn, pclient) => ['end', () => conn.detach(pclient)],
-  (conn, pclient) => ['error', () => conn.detach(pclient)],
-];

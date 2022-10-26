@@ -40,24 +40,17 @@ The botOptions which are needed in the constructor of Conn, are the same as the 
 
 ConnOptions regulate Conn-specific settings.
 
-- `ConnOptions.events`: extra events you can specify that will listen on every pclient that is attached. You can also specify methods in the array that return an event. They can take the `Conn` and specific `pclient` as options. The type definition of events looks as such:
-
-  ```ts
-  type ClientEventTuple = [event: string, listener: (...args: any) => void];
-  type ClientEvents = (ClientEventTuple | ((conn: Conn, pclient: Client) => ClientEventTuple))[];
-  ```
-
-- `ConnOptions.internalWhitelist`: a packet name whitelist for the internal bot. Whitelisted packets are still sent even if a proxyClient is currently linked.
-- `ConnOptions.toServerBlackList`: a packet name blacklist for all proxyClients. Blacklisted packets will not be transmitted from the proxyClient to the server.
-- `ConnOptions.toServerBlackList`: a packet name blacklist for all proxyClients. Blacklisted packets will not be transmitted from the server to the proxyClient.
+- Object. Optional
+  - `optimizePacketWrite` - Boolean. Optional. Setting for writing the received packet buffer instead off re serializing the deserialized packet. Packets that had there data changed inside the middleware are effected by this. Defaults to `true`.
+  - `toClientMiddleware` - Middleware. Optional. A default to Client middleware to be attached to every client.
+  - `toServerMiddleware` - Middleware. Optional. A default to Server middleware to be attached to every client.
 
 #### `Client` | `pclient`
 
 The Client class is the same as the minecraft-protocol client class with the one exception that it can also contain the following settings used in the Conn class to cause different behaviors.
 
-- `pclient.toServerWhiteList`: a packet name whitelist for the client. Whitelisted packets will still be sent to the server even if the client isn't linked.
-- `pclient.toServerBlackList`: a packet name blacklist for the client. Blacklisted packets will not be sent to the server even if the client is linked.
-- `pclient.toClientBlackList`: a packet name blacklist for the client. Blacklisted packets will not be sent to the client it it is attached.
+- `toClientMiddlewares` - `Middleware[]`. To client middleware array
+- `toServerMiddlewares` - `Middleware[]`. To server middleware array
 
 #### `Packet`
 
@@ -69,11 +62,43 @@ const packet: Packet = ['chat', { message: 'Welcome to mcproxy!', position: 0 }]
 pclient.write(...packet);
 ```
 
-### `generatePackets()`
+#### `PacketMeta`
+
+The packet meta. Name is the packet name. State can be play or login (?).
 
 ```ts
-import { generatePackets } from '@rob9315/mcproxy';
-let packets: Packet[] = generatePackets(bot, pclient?: Client);
+name: string;
+state: States;
+```
+
+#### `Middleware`
+
+A function to interact with send packets between a connected client and the server.
+
+##### Arguments:
+
+- `info` - Object that contains meta info about the packet.
+  - `bound` - String. Either `'client'` or `'server'`. Will always be the same depending on If the middleware was attached as a to Client or to Server middleware.
+  - `meta` - The `PacketMeta` off the send packet.
+  - `writeType` - Only `'packet'` at the moment
+- `pclient` - `Client`. The client this packet belongs to or is destined to.
+- `data` - The parsed packet data. See the [prismarine data](https://minecraft-data.prismarine.js.org/?d=protocol) for protocol specific packet data.
+- `cancel` - The packet canceler function. If you want cancel a packet you call this function. Also has a `isCanceled` attribute to check if a packet is already canceled or not. Can be called with the first argument as `false` to revers an already set canceled attribute to un cancel a packet.
+- `update` - The packet updater. If a packet has been changed this function should be called. This can be used to speed up middleware performance by only serializing packets that have been changed. Has an attribute `isUpdated` to check if the current packet will be treated as updated or not. Can be called with the first argument as `false` to revers an already set update attribute to un update a packet.
+
+```ts
+const middlewareFunction: PacketMiddleware = (info, pclient, data: any, cancel) => {
+  if (cancel.isCanceled) return; // Not necessary but may improve performance when using multiple middleware's after each other
+  if (info.meta.name !== 'chat') return;
+  if (JSON.stringify(data.message).includes('censor')) return cancel(); // Cancel all packets that have the word censor in the chat message string
+};
+```
+
+### `getLoginSequencePackets()`
+
+```ts
+import { getLoginSequencePackets } from '@rob9315/mcproxy';
+let packets: Packet[] = getLoginSequencePackets(bot, pclient?: Client);
 packets.forEach((packet)=>pclient.write(...packet));
 ```
 
@@ -110,10 +135,15 @@ calls `Conn.generatePackets()` and sends the result to the proxyClient specified
 ### `Conn.attach()`
 
 ```ts
-Conn.attach(pclient: Client)
+Conn.attach(pclient: Client, options?: { toClientMiddleware?: PacketMiddleware[], toServerMiddleware?: PacketMiddleware[] })
 ```
 
-the pclient specified will be added to the `Conn.pclients` array, which means that it will receive all packets from the server. If you want the client to be able to send packets to the server as well, don't forget to call `Conn.link()`
+- pclient - The client to be attached
+- options - Optional
+  - toClientMiddleware - Optional. A middleware function array to be used as this clients middle ware to the client. See middleware for a function definition.
+  - toServerMiddleware - Optional. A middleware function array to be used as this clients middle ware to the server
+
+the pclient specified will be added to the `Conn.pclients` array and the `Conn.receivingPclients`, which means that it will receive all packets from the server. If you want the client to be able to send packets to the server as well, don't forget to call `Conn.link()`
 
 ### `Conn.detach()`
 

@@ -2,21 +2,17 @@
 # yarn lockfile v1
 
 
-"@azure/msal-common@^6.1.0":
-  version "6.1.0"
-  resolved "https://registry.yarnpkg.com/@azure/msal-common/-/msal-common-6.1.0.tgz#00b0c625d10f4c8e48e7b48a353f7d8d20a5ceca"
-  integrity sha512-IGjAHttOgKDPQr0Qxx1NjABR635ZNuN7LHjxI0Y7SEA2thcaRGTccy+oaXTFabM/rZLt4F2VrPKUX4BnR9hW9g==
-  dependencies:
-    debug "^4.1.1"
+"@azure/msal-common@^7.3.0":
+  version "7.3.0"
+  resolved "https://registry.yarnpkg.com/@azure/msal-common/-/msal-common-7.3.0.tgz#63778ca00a41e3160842b0ee2134cfa92b524820"
+  integrity sha512-revxB3z+QLjwAtU1d04nC1voFr+i3LfqTpUfgrWZVqKh/sSgg0mZZUvw4vKVWB57qtL95sul06G+TfdFZny1Xw==
 
 "@azure/msal-node@^1.1.0":
-  version "1.6.0"
-  resolved "https://registry.yarnpkg.com/@azure/msal-node/-/msal-node-1.6.0.tgz#59d6306979581fd9379d17d22047ada143ed56df"
-  integrity sha512-RCPXVWsjqYZh7NB1pAJLn4ypHlLBulOjw5nKPLsJiaJJIXnN8kc6SMkK3S9/80DZCEBstvoRMz6zF50QZJUeOQ==
+  version "1.12.1"
+  resolved "https://registry.yarnpkg.com/@azure/msal-node/-/msal-node-1.12.1.tgz#1e69189242709d59479fe1133f741ca6564f8020"
+  integrity sha512-m909lX9C8Ty01DBxbjr4KfAKWibohgRvY7hrdDo13U1ztlH+0Nbt7cPF1vrWonW/CRT4H4xtUa4LCNmivghggw==
   dependencies:
-    "@azure/msal-common" "^6.1.0"
-    axios "^0.21.4"
-    https-proxy-agent "^5.0.0"
+    "@azure/msal-common" "^7.3.0"
     jsonwebtoken "^8.5.1"
     uuid "^8.3.0"
 
@@ -25,10 +21,23 @@
   resolved "https://registry.yarnpkg.com/@rob9315/prettier-config/-/prettier-config-0.0.1.tgz#aa9eaece25117c751da3d904e1722a7baf06436c"
   integrity sha512-CpYfYDp2njwE/3Y4GrqTeHH5KGs+IZVc+xALY+eUTat2weiUXN9Qk7bkmwSWXlIAz2PIX8EROqN5Kl89cyKPsA==
 
+"@types/node@*":
+  version "18.7.4"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-18.7.4.tgz#95baa50846ae112a7376869d49fec23b2506c69d"
+  integrity sha512-RzRcw8c0B8LzryWOR4Wj7YOTFXvdYKwvrb6xQQyuDfnlTxwYXGCV5RZ/TEbq5L5kn+w3rliHAUyRcG1RtbmTFg==
+
 "@types/node@^16.6.2":
-  version "16.11.24"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-16.11.24.tgz#9624338b685fea65fb1aba6c7b7eb45ca2df7188"
-  integrity sha512-Ezv33Rl4mIi6YdSHfIRNBd4Q9kUe5okiaw/ikvJiJDmuQZNW5kfdg7+oQPF8NO6sTcr3woIpj3jANzTXdvEZXA==
+  version "16.11.48"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-16.11.48.tgz#22d386f32b24fb644940b606ed393b56be7d8686"
+  integrity sha512-Z9r9UWlNeNkYnxybm+1fc0jxUNjZqRekTAr1pG0qdXe9apT9yCiqk1c4VvKQJsFpnchU4+fLl25MabSLA2wxIw==
+
+"@types/readable-stream@^2.3.13":
+  version "2.3.14"
+  resolved "https://registry.yarnpkg.com/@types/readable-stream/-/readable-stream-2.3.14.tgz#1282cdc03a1fc9ed52982aa8f0553d7c251070b9"
+  integrity sha512-8jQ5Mp7bsDJEnW/69i6nAaQMoLwAVJVc7ZRAVTrdh/o6XueQsX38TEvKuYyoQj76/mg7WdlRfMrtl9pDLCJWsg==
+  dependencies:
+    "@types/node" "*"
+    safe-buffer "*"
 
 "@xboxreplay/errors@^0.1.0":
   version "0.1.0"
@@ -43,17 +52,17 @@
     "@xboxreplay/errors" "^0.1.0"
     axios "^0.21.1"
 
+abort-controller@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/abort-controller/-/abort-controller-3.0.0.tgz#eaf54d53b62bae4138e809ca225c8439a6efb392"
+  integrity sha512-h8lQ8tacZYnR3vNQTgibj+tODHI5/+l06Au2Pcriv/Gmet0eaj4TwWH41sO9wnHDiQsEj19q0drzdWdeAHtweg==
+  dependencies:
+    event-target-shim "^5.0.0"
+
 aes-js@^3.1.2:
   version "3.1.2"
   resolved "https://registry.yarnpkg.com/aes-js/-/aes-js-3.1.2.tgz#db9aabde85d5caabbfc0d4f2a4446960f627146a"
   integrity sha512-e5pEa2kBnBOgR4Y/p20pskXI74UEz7de8ZGVo58asOtvSVG5YAbJeELPZxOmt+Bnz3rX753YKhfIn4X4l1PPRQ==
-
-agent-base@6:
-  version "6.0.2"
-  resolved "https://registry.yarnpkg.com/agent-base/-/agent-base-6.0.2.tgz#49fff58577cfee3f37176feab4c22e00f86d7f77"
-  integrity sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==
-  dependencies:
-    debug "4"
 
 ajv@^6.5.4:
   version "6.12.6"
@@ -68,9 +77,9 @@ ajv@^6.5.4:
 asn1@0.2.3:
   version "0.2.3"
   resolved "https://registry.yarnpkg.com/asn1/-/asn1-0.2.3.tgz#dac8787713c9966849fc8180777ebe9c1ddf3b86"
-  integrity sha1-2sh4dxPJlmhJ/IGAd36+nB3fO4Y=
+  integrity sha512-6i37w/+EhlWlGUJff3T/Q8u1RGmP5wgbiwYnOnbOqvtrPxT63/sYFyP9RcpxtxGymtfA075IvmOnL7ycNOWl3w==
 
-axios@^0.21.1, axios@^0.21.4:
+axios@^0.21.1:
   version "0.21.4"
   resolved "https://registry.yarnpkg.com/axios/-/axios-0.21.4.tgz#c67b90dc0568e5c1cf2b0b858c43ba28e2eda575"
   integrity sha512-ut5vewkiu8jjGBdqpM44XxjuCjq9LAKeHVmoVfHVzy8eHgxxq8SbAVQNovDA8mVi05kP0Ea/n/UzcSHcTJQfNg==
@@ -80,29 +89,29 @@ axios@^0.21.1, axios@^0.21.4:
 buffer-equal-constant-time@1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/buffer-equal-constant-time/-/buffer-equal-constant-time-1.0.1.tgz#f8e71132f7ffe6e01a5c9697a4c6f3e48d5cc819"
-  integrity sha1-+OcRMvf/5uAaXJaXpMbz5I1cyBk=
+  integrity sha512-zRpUiDwd/xk6ADqPMATG8vc9VPrkck7T07OIx0gnjmJAnHnTVXNQG3vfvWNuiZIkwu9KrKdA1iJKfsfTVxE6NA==
 
 buffer-equal@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/buffer-equal/-/buffer-equal-1.0.0.tgz#59616b498304d556abd466966b22eeda3eca5fbe"
-  integrity sha1-WWFrSYME1Var1GaWayLu2j7KX74=
+  integrity sha512-tcBWO2Dl4e7Asr9hTGcpVrCe+F7DubpmqWCTbj4FHLmjqO2hIaC383acQubWtRJhdceqs5uBHs6Es+Sk//RKiQ==
 
 commander@^2.19.0:
   version "2.20.3"
   resolved "https://registry.yarnpkg.com/commander/-/commander-2.20.3.tgz#fd485e84c03eb4881c20722ba48035e8531aeb33"
   integrity sha512-GpVkmM8vF2vQUkj2LvZmD35JxeJOLCwJ9cUkugyk2nuhbv3+mJvpLYYt+0+USMxE+oj+ey/lJEnhZw75x/OMcQ==
 
-debug@4, debug@^4.1.1, debug@^4.3.2:
-  version "4.3.3"
-  resolved "https://registry.yarnpkg.com/debug/-/debug-4.3.3.tgz#04266e0b70a98d4462e6e288e38259213332b664"
-  integrity sha512-/zxw5+vh1Tfv+4Qn7a5nsbcJKPaSvCDhojn6FEl9vupwK2VCSDtEiEtqr8DFtzYFOdz63LBkxec7DYuc2jon6Q==
+debug@^4.3.2, debug@^4.3.3:
+  version "4.3.4"
+  resolved "https://registry.yarnpkg.com/debug/-/debug-4.3.4.tgz#1319f6579357f2338d3337d2cdd4914bb5dcc865"
+  integrity sha512-PRWFHuSU3eDtQJPvnNY7Jcket1j0t5OuOsFzPPzsekD52Zl8qUfFIPEiswXqIvHWGVHOgX+7G/vCNNhehwxfkQ==
   dependencies:
     ms "2.1.2"
 
 discontinuous-range@1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/discontinuous-range/-/discontinuous-range-1.0.0.tgz#e38331f0844bba49b9a9cb71c771585aab1bc65a"
-  integrity sha1-44Mx8IRLukm5qctxx3FYWqsbxlo=
+  integrity sha512-c68LpLbO+7kP/b1Hr1qs8/BJ09F5khZGTxqxZuhzxpmwJKOgRFHJWIb9/KmqnqHhLdO55aOxFH/EGBvUQbL/RQ==
 
 ecdsa-sig-formatter@1.0.11:
   version "1.0.11"
@@ -114,7 +123,12 @@ ecdsa-sig-formatter@1.0.11:
 endian-toggle@^0.0.0:
   version "0.0.0"
   resolved "https://registry.yarnpkg.com/endian-toggle/-/endian-toggle-0.0.0.tgz#e5cc7578b1032d6ee01eafcd73765db0db4dc0a6"
-  integrity sha1-5cx1eLEDLW7gHq/Nc3ZdsNtNwKY=
+  integrity sha512-ShfqhXeHRE4TmggSlHXG8CMGIcsOsqDw/GcoPcosToE59Rm9e4aXaMhEQf2kPBsBRrKem1bbOAv5gOKnkliMFQ==
+
+event-target-shim@^5.0.0:
+  version "5.0.1"
+  resolved "https://registry.yarnpkg.com/event-target-shim/-/event-target-shim-5.0.1.tgz#5d4d3ebdf9583d63a5333ce2deb7480ab2b05789"
+  integrity sha512-i/2XbnSz/uxRCU6+NdVJgKWDTM427+MqYbkQzD321DuCQJUqOuJKIA0IM2+W2xtYHdKOmZ4dR6fExsd4SXL+WQ==
 
 fast-deep-equal@^3.1.1:
   version "3.1.3"
@@ -127,17 +141,9 @@ fast-json-stable-stringify@^2.0.0:
   integrity sha512-lhd/wF+Lk98HZoTCtlVraHtfh5XYijIjalXck7saUtuanSDyLMxnHhSXEDJqHxD7msR8D0uCmqlkwjCV8xvwHw==
 
 follow-redirects@^1.14.0:
-  version "1.14.8"
-  resolved "https://registry.yarnpkg.com/follow-redirects/-/follow-redirects-1.14.8.tgz#016996fb9a11a100566398b1c6839337d7bfa8fc"
-  integrity sha512-1x0S9UVJHsQprFcEC/qnNzBLcIxsjAV905f/UkQxbclCsoTWlacCNOpQa/anodLl2uaEKFhfWOvM2Qg77+15zA==
-
-https-proxy-agent@^5.0.0:
-  version "5.0.0"
-  resolved "https://registry.yarnpkg.com/https-proxy-agent/-/https-proxy-agent-5.0.0.tgz#e2a90542abb68a762e0a0850f6c9edadfd8506b2"
-  integrity sha512-EkYm5BcKUGiduxzSt3Eppko+PiNWNEpa4ySk9vTC6wDsQJW9rHSa+UhGNJoRYp7bz6Ht1eaRIa6QaJqO5rCFbA==
-  dependencies:
-    agent-base "6"
-    debug "4"
+  version "1.15.1"
+  resolved "https://registry.yarnpkg.com/follow-redirects/-/follow-redirects-1.15.1.tgz#0ca6a452306c9b276e4d3127483e29575e207ad5"
+  integrity sha512-yLAMQs+k0b2m7cVxpS1VKJVvoz7SS9Td1zss3XRwXj+ZDH00RJgnuLx7E44wx02kQLrdM3aOOy+FpzS7+8OizA==
 
 inherits@^2.0.3:
   version "2.0.4"
@@ -145,9 +151,9 @@ inherits@^2.0.3:
   integrity sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==
 
 jose@^4.1.4:
-  version "4.5.0"
-  resolved "https://registry.yarnpkg.com/jose/-/jose-4.5.0.tgz#92829d8cf846351eb55aaaf94f252fb1d191f2d5"
-  integrity sha512-GFcVFQwYQKbQTUOo2JlpFGXTkgBw26uzDsRMD2q1WgSKNSnpKS9Ug7bdQ8dS+p4sZHNH6iRPu6WK2jLIjspaMA==
+  version "4.8.3"
+  resolved "https://registry.yarnpkg.com/jose/-/jose-4.8.3.tgz#5a754fb4aa5f2806608d083f438e6916b11087da"
+  integrity sha512-7rySkpW78d8LBp4YU70Wb7+OTgE3OwAALNVZxhoIhp4Kscp+p/fBkdpxGAMKxvCAMV4QfXBU9m6l9nX/vGwd2g==
 
 json-schema-traverse@^0.4.1:
   version "0.4.1"
@@ -190,37 +196,37 @@ jws@^3.2.2:
 lodash.get@^4.1.2, lodash.get@^4.4.2:
   version "4.4.2"
   resolved "https://registry.yarnpkg.com/lodash.get/-/lodash.get-4.4.2.tgz#2d177f652fa31e939b4438d5341499dfa3825e99"
-  integrity sha1-LRd/ZS+jHpObRDjVNBSZ36OCXpk=
+  integrity sha512-z+Uw/vLuy6gQe8cfaFWD7p0wVv8fJl3mbzXh33RS+0oW2wvUqiRXiQ69gLWSLpgB5/6sU+r6BlQR0MBILadqTQ==
 
 lodash.includes@^4.3.0:
   version "4.3.0"
   resolved "https://registry.yarnpkg.com/lodash.includes/-/lodash.includes-4.3.0.tgz#60bb98a87cb923c68ca1e51325483314849f553f"
-  integrity sha1-YLuYqHy5I8aMoeUTJUgzFISfVT8=
+  integrity sha512-W3Bx6mdkRTGtlJISOvVD/lbqjTlPPUDTMnlXZFnVwi9NKJ6tiAk6LVdlhZMm17VZisqhKcgzpO5Wz91PCt5b0w==
 
 lodash.isboolean@^3.0.3:
   version "3.0.3"
   resolved "https://registry.yarnpkg.com/lodash.isboolean/-/lodash.isboolean-3.0.3.tgz#6c2e171db2a257cd96802fd43b01b20d5f5870f6"
-  integrity sha1-bC4XHbKiV82WgC/UOwGyDV9YcPY=
+  integrity sha512-Bz5mupy2SVbPHURB98VAcw+aHh4vRV5IPNhILUCsOzRmsTmSQ17jIuqopAentWoehktxGd9e/hbIXq980/1QJg==
 
 lodash.isinteger@^4.0.4:
   version "4.0.4"
   resolved "https://registry.yarnpkg.com/lodash.isinteger/-/lodash.isinteger-4.0.4.tgz#619c0af3d03f8b04c31f5882840b77b11cd68343"
-  integrity sha1-YZwK89A/iwTDH1iChAt3sRzWg0M=
+  integrity sha512-DBwtEWN2caHQ9/imiNeEA5ys1JoRtRfY3d7V9wkqtbycnAmTvRRmbHKDV4a0EYc678/dia0jrte4tjYwVBaZUA==
 
 lodash.isnumber@^3.0.3:
   version "3.0.3"
   resolved "https://registry.yarnpkg.com/lodash.isnumber/-/lodash.isnumber-3.0.3.tgz#3ce76810c5928d03352301ac287317f11c0b1ffc"
-  integrity sha1-POdoEMWSjQM1IwGsKHMX8RwLH/w=
+  integrity sha512-QYqzpfwO3/CWf3XP+Z+tkQsfaLL/EnUlXWVkIk5FUPc4sBdTehEqZONuyRt2P67PXAk+NXmTBcc97zw9t1FQrw==
 
 lodash.isplainobject@^4.0.6:
   version "4.0.6"
   resolved "https://registry.yarnpkg.com/lodash.isplainobject/-/lodash.isplainobject-4.0.6.tgz#7c526a52d89b45c45cc690b88163be0497f550cb"
-  integrity sha1-fFJqUtibRcRcxpC4gWO+BJf1UMs=
+  integrity sha512-oSXzaWypCMHkPC3NvBEaPHf0KsA5mvPrOPgQWDsbg8n7orZ290M0BmC/jgRZ4vcJ6DTAhjrsSYgdsW/F+MFOBA==
 
 lodash.isstring@^4.0.1:
   version "4.0.1"
   resolved "https://registry.yarnpkg.com/lodash.isstring/-/lodash.isstring-4.0.1.tgz#d527dfb5456eca7cc9bb95d5daeaf88ba54a5451"
-  integrity sha1-1SfftUVuynzJu5XV2ur4i6VKVFE=
+  integrity sha512-0wJxfxH1wgO3GrbuP+dTTk7op+6L41QCXbGINEmD+ny/G/eCqGzxyCsh7159S+mgDDcoarnBw6PC1PS5+wUGgw==
 
 lodash.merge@^4.3.0:
   version "4.6.2"
@@ -230,27 +236,22 @@ lodash.merge@^4.3.0:
 lodash.once@^4.0.0:
   version "4.1.1"
   resolved "https://registry.yarnpkg.com/lodash.once/-/lodash.once-4.1.1.tgz#0dd3971213c7c56df880977d504c88fb471a97ac"
-  integrity sha1-DdOXEhPHxW34gJd9UEyI+0cal6w=
+  integrity sha512-Sb487aTOCr9drQVL8pIxOzVhafOjZN9UU54hiN8PU3uAiSV7lx1yYNpbNmex2PK6dSJoNTSJUUswT651yww3Mg==
 
 lodash.reduce@^4.6.0:
   version "4.6.0"
   resolved "https://registry.yarnpkg.com/lodash.reduce/-/lodash.reduce-4.6.0.tgz#f1ab6b839299ad48f784abbf476596f03b914d3b"
-  integrity sha1-8atrg5KZrUj3hKu/R2WW8DuRTTs=
+  integrity sha512-6raRe2vxCYBhpBu+B+TtNGUzah+hQjVdu3E17wfusjyrXBka2nBS8OH/gjVZ5PvHOhWmIZTYri09Z6n/QfnNMw==
 
 macaddress@^0.5.1:
-  version "0.5.2"
-  resolved "https://registry.yarnpkg.com/macaddress/-/macaddress-0.5.2.tgz#0ed6c836da3b182e4400bc4594083cdd33511cc4"
-  integrity sha512-cYYBbT3b84hTEHssWE6OmsuqF/NiLXE2RGK9Sc9SwwE9kMoKrbaUAJtKs6ucd0FFgZjXE1Wm3hoGEEYas0N6EA==
+  version "0.5.3"
+  resolved "https://registry.yarnpkg.com/macaddress/-/macaddress-0.5.3.tgz#2b9d6832be934cb775749f30f57d6537184a2bda"
+  integrity sha512-vGBKTA+jwM4KgjGZ+S/8/Mkj9rWzePyGY6jManXPGhiWu63RYwW8dKPyk5koP+8qNVhPhHgFa1y/MJ4wrjsNrg==
 
-minecraft-data@^2.100.1, minecraft-data@^2.106.0, minecraft-data@^2.109.0, minecraft-data@^2.61.0, minecraft-data@^2.62.1, minecraft-data@^2.74.0:
-  version "2.113.0"
-  resolved "https://registry.yarnpkg.com/minecraft-data/-/minecraft-data-2.113.0.tgz#e761f710a1385b225414864332338102b2079951"
-  integrity sha512-KvFyHOalKVBXYkzvzin7Li0hP1VaLrAJ3z+LipTVjZlda1HZ1Moa8rHfeNQk9ZwdgGnJdPqCL/mPlGYQlHRD2g==
-
-minecraft-data@^2.114.1, minecraft-data@^2.119.1:
-  version "2.220.0"
-  resolved "https://registry.yarnpkg.com/minecraft-data/-/minecraft-data-2.220.0.tgz#23639d8106e30d0f5b214533ffc7a8e28920cacb"
-  integrity sha512-6/1TxrX9jf8z8aRxWtB9IiDy6O3t6Yor/qGxCDB8ibahf/Ss5HNaPjjjjATLrdT2KrIWywv5oc4eSZ2bfXlDmQ==
+minecraft-data@^3.0.0:
+  version "3.10.1"
+  resolved "https://registry.yarnpkg.com/minecraft-data/-/minecraft-data-3.10.1.tgz#62b5c251e63fe089d5f531f458d7b6abc7ea885f"
+  integrity sha512-Fr/tjL3i1yqyrfAfbQ60RbmXmOS8cqomBsNtwgTos9rIdH7tHJ5syayKXk/KV8M0i+mwvXf5O3/CoJkxq7mf0Q==
 
 minecraft-folder-path@^1.2.0:
   version "1.2.0"
@@ -258,43 +259,45 @@ minecraft-folder-path@^1.2.0:
   integrity sha512-qaUSbKWoOsH9brn0JQuBhxNAzTDMwrOXorwuRxdJKKKDYvZhtml+6GVCUrY5HRiEsieBEjCUnhVpDuQiKsiFaw==
 
 minecraft-protocol@^1.31.0, minecraft-protocol@^1.32.0:
-  version "1.32.0"
-  resolved "https://registry.yarnpkg.com/minecraft-protocol/-/minecraft-protocol-1.32.0.tgz#cdbd2752ee1c0af81ab54b124056e14ed08e1ef9"
-  integrity sha512-KIg/SnKagSe2GtVjvWealobTkC1VLPCRYpzIZd4l+rbo3fND1e1NBmfZVsawbByYwK6/STKODkMJgk763FejTQ==
+  version "1.35.1"
+  resolved "https://registry.yarnpkg.com/minecraft-protocol/-/minecraft-protocol-1.35.1.tgz#5783bd2156f14128d1ed8d0c756b3306622e1575"
+  integrity sha512-f39oYBKV3jnThWhLoThzBNd4imG332KmnvK/uzfUvr5lt6HFmYgznzzaDl2q9fRyNj5pMS73f5n/B1XUICK8gQ==
   dependencies:
+    "@types/readable-stream" "^2.3.13"
     aes-js "^3.1.2"
     buffer-equal "^1.0.0"
     debug "^4.3.2"
     endian-toggle "^0.0.0"
     lodash.get "^4.1.2"
     lodash.merge "^4.3.0"
-    minecraft-data "^2.109.0"
+    minecraft-data "^3.0.0"
     minecraft-folder-path "^1.2.0"
     node-fetch "^2.6.1"
     node-rsa "^0.4.2"
     prismarine-auth "^1.1.0"
     prismarine-nbt "^2.0.0"
     protodef "^1.8.0"
-    readable-stream "^3.0.6"
+    readable-stream "^4.1.0"
     uuid-1345 "^1.0.1"
     yggdrasil "^1.4.0"
 
 mineflayer@^4.1.0:
-  version "4.1.0"
-  resolved "https://registry.yarnpkg.com/mineflayer/-/mineflayer-4.1.0.tgz#12d0628bb3ff1d0e5341b968f116beeac62ab573"
-  integrity sha512-Av6qote/cmWrlCB4WArleKHmh8zrU4SYOygdLVi9OglUbsUnaIGPkbSrneL0vhW/io+1WR6/OjHts8W8Hc73Dg==
+  version "4.4.0"
+  resolved "https://registry.yarnpkg.com/mineflayer/-/mineflayer-4.4.0.tgz#c432200aa62f0775cbbc9a150672dd355c204855"
+  integrity sha512-nKy1KQSb20zWGtwlvwCmduAT7PHTchoR5jFAf4c8PzsxMznVCg9UeDOXYY8DfROpm6Kqjsg7DcQDFnS2frDD6w==
   dependencies:
-    minecraft-data "^2.114.1"
+    minecraft-data "^3.0.0"
     minecraft-protocol "^1.31.0"
     prismarine-biome "^1.1.1"
     prismarine-block "^1.13.1"
     prismarine-chat "^1.3.3"
     prismarine-chunk "^1.29.0"
     prismarine-entity "^2.0.0"
-    prismarine-item "^1.11.0"
+    prismarine-item "^1.11.5"
     prismarine-nbt "^2.0.0"
     prismarine-physics "^1.3.1"
     prismarine-recipe "^1.1.0"
+    prismarine-registry "^1.0.0"
     prismarine-windows "^2.4.2"
     prismarine-world "^3.6.0"
     protodef "^1.14.0"
@@ -343,32 +346,34 @@ node-fetch@^2.6.1:
 node-rsa@^0.4.2:
   version "0.4.2"
   resolved "https://registry.yarnpkg.com/node-rsa/-/node-rsa-0.4.2.tgz#d6391729ec16a830ed5a38042b3157d2d5d72530"
-  integrity sha1-1jkXKewWqDDtWjgEKzFX0tXXJTA=
+  integrity sha512-Bvso6Zi9LY4otIZefYrscsUpo2mUpiAVIEmSZV2q41sP8tHZoert3Yu6zv4f/RXJqMNZQKCtnhDugIuCma23YA==
   dependencies:
     asn1 "0.2.3"
 
 prismarine-auth@^1.1.0:
-  version "1.4.1"
-  resolved "https://registry.yarnpkg.com/prismarine-auth/-/prismarine-auth-1.4.1.tgz#6e55601dd12d328ce4bf550caedf41ceb0dd43f9"
-  integrity sha512-IyFz+TWkngtRPs19MWP/7dYU1vheiASoil5d7amvIXhbK4zWb/w7uGcwLvOO0fwX9qw5hCt/JKimPrRcw8La0w==
+  version "1.7.0"
+  resolved "https://registry.yarnpkg.com/prismarine-auth/-/prismarine-auth-1.7.0.tgz#7eaa474ad10b94c9787836a5e0f2cf2d90024294"
+  integrity sha512-Feorw3LkKGDxafolD0f7KcuucOad8NceXEoIwYScxhOdld61CpKVh8aprA3IWnmd0Vj/KO+qK8VGpFSvdaaZzA==
   dependencies:
     "@azure/msal-node" "^1.1.0"
     "@xboxreplay/xboxlive-auth" "^3.3.3"
+    debug "^4.3.3"
     jose "^4.1.4"
     node-fetch "^2.6.1"
     smart-buffer "^4.1.0"
     uuid-1345 "^1.0.2"
 
-prismarine-biome@^1.1.0, prismarine-biome@^1.1.1:
-  version "1.2.0"
-  resolved "https://registry.yarnpkg.com/prismarine-biome/-/prismarine-biome-1.2.0.tgz#4ae0488991a660d07a3d0d8b3c976fd419fab346"
-  integrity sha512-sMeK4HkZkqTWy5kx0qvzvNPz/MmR/V2G9ouhnCjgm2pvckW9QqlyO/H+7RIjdn+jDBlHRteLKKTls76udXsR1A==
+prismarine-biome@^1.1.0, prismarine-biome@^1.1.1, prismarine-biome@^1.2.0:
+  version "1.3.0"
+  resolved "https://registry.yarnpkg.com/prismarine-biome/-/prismarine-biome-1.3.0.tgz#53b122fc7c3968f43f1639e823e7bd1b829fab46"
+  integrity sha512-GY6nZxq93mTErT7jD7jt8YS1aPrOakbJHh39seYsJFXvueIOdHAmW16kYQVrTVMW5MlWLQVxV/EquRwOgr4MnQ==
 
-prismarine-block@^1.13.1:
-  version "1.13.1"
-  resolved "https://registry.yarnpkg.com/prismarine-block/-/prismarine-block-1.13.1.tgz#1734060be3256f1e325cfaf09d1a1aafca741055"
-  integrity sha512-V0J03UG4wK7G7idXsFqt84DvQ90sPZQLi64T3ZmOXmRcjjIVahiAUzqfmeO7S8GJ/3NQCJ9b9cRzGNRtl/3a5A==
+prismarine-block@^1.13.1, prismarine-block@^1.14.1:
+  version "1.16.3"
+  resolved "https://registry.yarnpkg.com/prismarine-block/-/prismarine-block-1.16.3.tgz#465b6b0154be16f8d7b5dc892f4a4153f073d542"
+  integrity sha512-E9OazjIqnEgcXM6me6EIeQFMcNRWZzsaftWtetRSIKVoW+4UKWleb6lTNKh9kq7wNxciKavcYBmKL3sF7HfSaA==
   dependencies:
+    minecraft-data "^3.0.0"
     prismarine-biome "^1.1.0"
     prismarine-chat "^1.5.0"
     prismarine-item "^1.10.1"
@@ -376,84 +381,89 @@ prismarine-block@^1.13.1:
     prismarine-registry "^1.1.0"
 
 prismarine-chat@^1.3.3, prismarine-chat@^1.4.1, prismarine-chat@^1.5.0:
-  version "1.6.0"
-  resolved "https://registry.yarnpkg.com/prismarine-chat/-/prismarine-chat-1.6.0.tgz#c7fffac5aa66288eb4b86b1bf8eeda4450b4452e"
-  integrity sha512-vgA0Iq2G4/GE4VNvtvQL/3XCHzCXi8rCb4WWyM2DR4q/7vg+4G93ZtKxphy7wlgPbB3qzQLneZz99O67TkZahA==
+  version "1.6.1"
+  resolved "https://registry.yarnpkg.com/prismarine-chat/-/prismarine-chat-1.6.1.tgz#1f522a41da418dfb70bdccf4eafaba5d191d9f02"
+  integrity sha512-BvDR6Jzz9aoSKa7L5peOPzEp0MyrEj+N5nRaBT2VBpPtGXx+jQCxqAK7XDWF65Z5iRhjubfGdZZf65ayWG3oDA==
   dependencies:
-    minecraft-data "^2.62.1"
+    minecraft-data "^3.0.0"
     mojangson "^2.0.1"
     prismarine-item "^1.10.0"
     prismarine-nbt "^2.0.0"
     sprintf-js "^1.1.2"
 
 prismarine-chunk@^1.29.0:
-  version "1.29.0"
-  resolved "https://registry.yarnpkg.com/prismarine-chunk/-/prismarine-chunk-1.29.0.tgz#ebe610ce08886a8f1c836c70acf1e5a3e4a89313"
-  integrity sha512-dTC5j9ixp8JjI0acOe1tGXE19GVm5dAX7qsvfbLueFNPmW2BNVzIzsgVjnfwGqSymr4dG/BIG83xek3+r6sbYQ==
+  version "1.31.0"
+  resolved "https://registry.yarnpkg.com/prismarine-chunk/-/prismarine-chunk-1.31.0.tgz#0e3d3d0860a4b5c136c176e9bdeedbb2b56450c6"
+  integrity sha512-Co5nE63yRabMaK2dRfflk5fGbNafFStz5zm8fsgUmG0g4d7qtPvIuQiB7kpl66pm+nv55rtQcW2UvxCo6u4w1A==
   dependencies:
-    minecraft-data "^2.61.0"
-    prismarine-block "^1.13.1"
+    minecraft-data "^3.0.0"
+    prismarine-biome "^1.2.0"
+    prismarine-block "^1.14.1"
     prismarine-registry "^1.1.0"
     smart-buffer "^4.1.0"
     uint4 "^0.1.2"
     vec3 "^0.1.3"
+    xxhash-wasm "^0.4.2"
 
 prismarine-entity@^2.0.0:
-  version "2.0.0"
-  resolved "https://registry.yarnpkg.com/prismarine-entity/-/prismarine-entity-2.0.0.tgz#dd0c991a8f5a24c078211b5c5a3fc411d07758b7"
-  integrity sha512-6TPldMDiUhK8drNHKVW5783IHkkgHQWQwPO9NPRUXyZNKYzhqLKeTxOAsmtcR9mjTORbrILzJUyB0qZgSyfOrA==
+  version "2.1.1"
+  resolved "https://registry.yarnpkg.com/prismarine-entity/-/prismarine-entity-2.1.1.tgz#95b48ab4e3d46f0a30d5e0c0ca8d366c1ae11d83"
+  integrity sha512-79iWUYNf0KRhMvvVJ4TTCQQZItPanA5zWBstx+eu98480WrCWi9fCdCPtY0Bsl4+o+tnkcTb6oMLlndx4yPwLA==
   dependencies:
+    minecraft-data "^3.0.0"
     prismarine-chat "^1.4.1"
+    prismarine-item "^1.11.2"
     vec3 "^0.1.4"
 
-prismarine-item@^1.10.0, prismarine-item@^1.10.1, prismarine-item@^1.11.0, prismarine-item@^1.11.2, prismarine-item@^1.5.0:
-  version "1.11.2"
-  resolved "https://registry.yarnpkg.com/prismarine-item/-/prismarine-item-1.11.2.tgz#8d6f6737b7f2cf1442ce49c944e632f363efdda2"
-  integrity sha512-OMkI/4g4N+Z0+63MIVbnxRZOjjyGs9E0KZ/v5UQZ0M6ZsxTGLHl2IqQAxVr59GrM4DsB8S+2Cp3A7t3EKZ1asQ==
+prismarine-item@^1.10.0, prismarine-item@^1.10.1, prismarine-item@^1.11.2, prismarine-item@^1.11.5, prismarine-item@^1.5.0:
+  version "1.11.5"
+  resolved "https://registry.yarnpkg.com/prismarine-item/-/prismarine-item-1.11.5.tgz#2eb55de849629c13e4582b061f89f030cd572f6b"
+  integrity sha512-aWH1AXTiSDUUM0LVnFtJJ96If/sOiuM3DBZmSvtwFD+ufQsF3WndH2QW2Pv6FbabKByneF9xyPsq5dhUnvcG7g==
   dependencies:
+    minecraft-data "^3.0.0"
     prismarine-nbt "^2.0.0"
 
 prismarine-nbt@^2.0.0:
-  version "2.2.0"
-  resolved "https://registry.yarnpkg.com/prismarine-nbt/-/prismarine-nbt-2.2.0.tgz#2fbde7ddb2e6c7bba2a5624b4a752ed463f8b1b6"
-  integrity sha512-6UgW9gkurSs2+L6el6bVHvK5BmfAdMv9ixY+zn4GSaTSOzuWumspErpStxo9RbeixmVq66dd0OQu1tHYXVkX8g==
+  version "2.2.1"
+  resolved "https://registry.yarnpkg.com/prismarine-nbt/-/prismarine-nbt-2.2.1.tgz#a263e08b36fd27a682024549a8823d82f9ad30d9"
+  integrity sha512-Mb50c58CPnuZ+qvM31DBa08tf9UumlTq1LkvpMoUpKfCuN05GZHTqCUwER3lxTSHLL0GZKghIPbYR/JQkINijQ==
   dependencies:
     protodef "^1.9.0"
 
 prismarine-physics@^1.3.1:
-  version "1.4.0"
-  resolved "https://registry.yarnpkg.com/prismarine-physics/-/prismarine-physics-1.4.0.tgz#7eddf5d328dd816ebac73e0d0ef4bc5ec02e8aec"
-  integrity sha512-RiBl/9WFg5TBwoAj1pDWEBF4A7iauJ4WK3JoUfOsr3tO9EPGNR8pEPMJ2VftG2OzDIz70jjsg7L8ISyBva8Ncw==
+  version "1.5.2"
+  resolved "https://registry.yarnpkg.com/prismarine-physics/-/prismarine-physics-1.5.2.tgz#5772247f863e60a042151286164057e9c9cd4bfc"
+  integrity sha512-Ak1yM/Fv9qxIt8Lgp/pHYS0v5P1bkZLq27Cb35Z/0YMCEUk0zXGfJOg0R666EQJOnAA1ABNZlRjglL9ZBMnWqg==
   dependencies:
-    minecraft-data "^2.100.1"
+    minecraft-data "^3.0.0"
     prismarine-nbt "^2.0.0"
     vec3 "^0.1.7"
 
 prismarine-recipe@^1.1.0:
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/prismarine-recipe/-/prismarine-recipe-1.1.0.tgz#ba83fea0d6f5ad3be83398a20f85f7e800665732"
-  integrity sha512-eFmriEWoe6S6OSVbOJnsXpaBuzeIzjaGymDUTCtrOu80734NWKI7outdLI6R2ztJ+f2PFIkFmpkazAdScStGNA==
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/prismarine-recipe/-/prismarine-recipe-1.2.0.tgz#95c223a37fc1047e4f8f619988d3923ec0c943f7"
+  integrity sha512-ZkCtEi5xDS7tAJgDS/BxjvEYPAXusikcyIWYhPOpA6nslIUqWF5+QevC6FpNa3eQVdebgiNBQqHggcnI4xww5g==
 
-prismarine-registry@^1.1.0:
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/prismarine-registry/-/prismarine-registry-1.1.0.tgz#c5395bf7823f0dc6ccd3d3a63fcfc252bb5ef877"
-  integrity sha512-zCI4LRRGATsqz2KQ6JKbgWMCTAsYcSDq/GuUQohS5XVW223byzZNHqwsqZLBScAvLnvWmfhe/Ok/UgJcrXxfRw==
+prismarine-registry@^1.0.0, prismarine-registry@^1.1.0:
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/prismarine-registry/-/prismarine-registry-1.2.0.tgz#34c96e521f10bd86f72c1ee1dd89c55d57914283"
+  integrity sha512-c3aEnn9/KrHo0zv4KihX0caFilCw5VW8Kaj9LXtArGRk5NkncDCguhM0S1SEj4WqoXsFSY4yG5HM5G4F92SKHg==
   dependencies:
-    minecraft-data "^2.106.0"
+    minecraft-data "^3.0.0"
     prismarine-nbt "^2.0.0"
 
 prismarine-windows@^2.4.2:
-  version "2.4.3"
-  resolved "https://registry.yarnpkg.com/prismarine-windows/-/prismarine-windows-2.4.3.tgz#5093182ce6298c866ae768f0813afabc0b790812"
-  integrity sha512-cwY8Pw8LcfWmTMlxg88hwj4JbEqqKivuwbWnu/jy9Qd6dPI80AtLBSrxsdVkJ9siy2imc1xP5vs+RxInzZo+TA==
+  version "2.4.4"
+  resolved "https://registry.yarnpkg.com/prismarine-windows/-/prismarine-windows-2.4.4.tgz#020b2ff0e5b1d0dc7ea23172411a6288597076cb"
+  integrity sha512-bjva7DtEu9V37SGgCqMiAgMRtwTypqyB95bS8VULUxoMPNhbcyTxdQhU6Fe2OFq4ufT9x3hGMKpMwJy+oepE0A==
   dependencies:
-    minecraft-data "^2.74.0"
+    minecraft-data "^3.0.0"
     prismarine-item "^1.5.0"
 
 prismarine-world@^3.6.0:
-  version "3.6.0"
-  resolved "https://registry.yarnpkg.com/prismarine-world/-/prismarine-world-3.6.0.tgz#9b9631f09f7ddd4e1cee142d6537e2ab0335ded7"
-  integrity sha512-rAudKWNOfiDrDaBlXx9/5B4CO/kc5G1RBq3GFAu1ov6GwUq8Ib8KXYeHPsoJwN3tfVDuFaJjncgsShqdoSmP0w==
+  version "3.6.1"
+  resolved "https://registry.yarnpkg.com/prismarine-world/-/prismarine-world-3.6.1.tgz#c3923ddb8c4806947fb86695f7c8359380aef650"
+  integrity sha512-sv7rR+vJ/ac3/dm4MoumreL4eqMi3B+h8I+JDYXQkNCdSJJISniQvi5qS4zTnAUCGXx/N6QfQ02bjBfyEoZuRw==
   dependencies:
     vec3 "^0.1.7"
 
@@ -482,7 +492,7 @@ punycode@^2.1.0:
 railroad-diagrams@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/railroad-diagrams/-/railroad-diagrams-1.0.0.tgz#eb7e6267548ddedfb899c1b90e57374559cddb7e"
-  integrity sha1-635iZ1SN3t+4mcG5Dlc3RVnN234=
+  integrity sha512-cz93DjNeLY0idrCNOH6PviZGRN9GJhsdm9hpn1YCS879fj4W+x5IFJhhkRZcwVgMmFF7R82UA/7Oh+R8lLZg6A==
 
 randexp@0.4.6:
   version "0.4.6"
@@ -492,7 +502,7 @@ randexp@0.4.6:
     discontinuous-range "1.0.0"
     ret "~0.1.10"
 
-readable-stream@^3.0.3, readable-stream@^3.0.6:
+readable-stream@^3.0.3:
   version "3.6.0"
   resolved "https://registry.yarnpkg.com/readable-stream/-/readable-stream-3.6.0.tgz#337bbda3adc0706bd3e024426a286d4b4b2c9198"
   integrity sha512-BViHy7LKeTz4oNnkcLJ+lVSL6vpiFeX6/d3oSH8zCW7UxP2onchk+vTGB143xuFjHS3deTgkKoXXymXqymiIdA==
@@ -501,12 +511,19 @@ readable-stream@^3.0.3, readable-stream@^3.0.6:
     string_decoder "^1.1.1"
     util-deprecate "^1.0.1"
 
+readable-stream@^4.1.0:
+  version "4.1.0"
+  resolved "https://registry.yarnpkg.com/readable-stream/-/readable-stream-4.1.0.tgz#280d0a29f559d3fb684a277254e02b6f61ae0631"
+  integrity sha512-sVisi3+P2lJ2t0BPbpK629j8wRW06yKGJUcaLAGXPAUhyUxVJm7VsCTit1PFgT4JHUDMrGNR+ZjSKpzGaRF3zw==
+  dependencies:
+    abort-controller "^3.0.0"
+
 ret@~0.1.10:
   version "0.1.15"
   resolved "https://registry.yarnpkg.com/ret/-/ret-0.1.15.tgz#b8a4825d5bdb1fc3f6f53c2bc33f81388681c7bc"
   integrity sha512-TTlYpa+OL+vMMNG24xSlQGEJ3B/RzEfUlLct7b5G/ytav+wPrplCpVMFuwzXbkecJrb6IYo1iFb0S9v37754mg==
 
-safe-buffer@^5.0.1, safe-buffer@~5.2.0:
+safe-buffer@*, safe-buffer@^5.0.1, safe-buffer@~5.2.0:
   version "5.2.1"
   resolved "https://registry.yarnpkg.com/safe-buffer/-/safe-buffer-5.2.1.tgz#1eaf9fa9bdb1fdd4ec75f58f9cdb4e6b7827eec6"
   integrity sha512-rp3So07KcdmmKbGvgaNxQSJr7bGVSVk5S9Eq1F+ppbRo70+YeaDxkw5Dd8NPN+GD6bjnYm2VuPuCXmpuYvmCXQ==
@@ -536,7 +553,7 @@ string_decoder@^1.1.1:
 tr46@~0.0.3:
   version "0.0.3"
   resolved "https://registry.yarnpkg.com/tr46/-/tr46-0.0.3.tgz#8184fd347dac9cdc185992f3a6622e14b9d9ab6a"
-  integrity sha1-gYT9NH2snNwYWZLzpmIuFLnZq2o=
+  integrity sha512-N3WMsuqV66lT30CrXNbEjx4GEwlow3v6rr4mCcv6prnfwhS01rkgyFdjPNBYd9br7LpXV1+Emh01fHnq2Gdgrw==
 
 typed-emitter@^1.0.0:
   version "1.4.0"
@@ -544,14 +561,14 @@ typed-emitter@^1.0.0:
   integrity sha512-weBmoo3HhpKGgLBOYwe8EB31CzDFuaK7CCL+axXhUYhn4jo6DSkHnbefboCF5i4DQ2aMFe0C/FdTWcPdObgHyg==
 
 typescript@^4.3.5:
-  version "4.5.5"
-  resolved "https://registry.yarnpkg.com/typescript/-/typescript-4.5.5.tgz#d8c953832d28924a9e3d37c73d729c846c5896f3"
-  integrity sha512-TCTIul70LyWe6IJWT8QSYeA54WQe8EjQFU4wY52Fasj5UKx88LNYKCgBEHcOMOrFF1rKGbD8v/xcNWVUq9SymA==
+  version "4.7.4"
+  resolved "https://registry.yarnpkg.com/typescript/-/typescript-4.7.4.tgz#1a88596d1cf47d59507a1bcdfb5b9dfe4d488235"
+  integrity sha512-C0WQT0gezHuw6AdY1M2jxUO83Rjf0HP7Sk1DtXj6j1EwkQNZrHAg2XPWlq62oqEhYvONq5pkC2Y9oPljWToLmQ==
 
 uint4@^0.1.2:
   version "0.1.2"
   resolved "https://registry.yarnpkg.com/uint4/-/uint4-0.1.2.tgz#50c5ae04b85d28128f2df3cc0ecc4d41abc2f681"
-  integrity sha1-UMWuBLhdKBKPLfPMDsxNQavC9oE=
+  integrity sha512-lhEx78gdTwFWG+mt6cWAZD/R6qrIj0TTBeH5xwyuDJyswLNlGe+KVlUPQ6+mx5Ld332pS0AMUTo9hIly7YsWxQ==
 
 uri-js@^4.2.2:
   version "4.4.1"
@@ -563,7 +580,7 @@ uri-js@^4.2.2:
 util-deprecate@^1.0.1:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/util-deprecate/-/util-deprecate-1.0.2.tgz#450d4dc9fa70de732762fbd2d4a28981419a0ccf"
-  integrity sha1-RQ1Nyfpw3nMnYvvS1KKJgUGaDM8=
+  integrity sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==
 
 uuid-1345@^1.0.1, uuid-1345@^1.0.2:
   version "1.0.2"
@@ -585,20 +602,25 @@ vec3@^0.1.3, vec3@^0.1.4, vec3@^0.1.7:
 webidl-conversions@^3.0.0:
   version "3.0.1"
   resolved "https://registry.yarnpkg.com/webidl-conversions/-/webidl-conversions-3.0.1.tgz#24534275e2a7bc6be7bc86611cc16ae0a5654871"
-  integrity sha1-JFNCdeKnvGvnvIZhHMFq4KVlSHE=
+  integrity sha512-2JAn3z8AR6rjK8Sm8orRC0h/bcl/DqL7tRPdGZ4I1CjdF+EaMLmYxBHyXuKL849eucPFhvBoxMsflfOb8kxaeQ==
 
 whatwg-url@^5.0.0:
   version "5.0.0"
   resolved "https://registry.yarnpkg.com/whatwg-url/-/whatwg-url-5.0.0.tgz#966454e8765462e37644d3626f6742ce8b70965d"
-  integrity sha1-lmRU6HZUYuN2RNNib2dCzotwll0=
+  integrity sha512-saE57nupxk6v3HY35+jzBwYa0rKSy0XR8JSxZPwgLr7ys0IBzhGviA1/TUGJLmSVqs8pb9AnvICXEuOHLprYTw==
   dependencies:
     tr46 "~0.0.3"
     webidl-conversions "^3.0.0"
 
+xxhash-wasm@^0.4.2:
+  version "0.4.2"
+  resolved "https://registry.yarnpkg.com/xxhash-wasm/-/xxhash-wasm-0.4.2.tgz#752398c131a4dd407b5132ba62ad372029be6f79"
+  integrity sha512-/eyHVRJQCirEkSZ1agRSCwriMhwlyUcFkXD5TPVSLP+IPzjsqMVzZwdoczLp1SoQU0R3dxz1RpIK+4YNQbCVOA==
+
 yggdrasil@^1.4.0:
-  version "1.6.1"
-  resolved "https://registry.yarnpkg.com/yggdrasil/-/yggdrasil-1.6.1.tgz#8e290f3c0681309c789eb9257f0781a9708d9ddc"
-  integrity sha512-6rUJ0A7YNVNd1K+8EvmVUc+l8CbhW7VKnN747BrC+YCukZj9C5rNsGxIZGf4MwxMHFDy/YNY++Gqf0VUxKy2ww==
+  version "1.7.0"
+  resolved "https://registry.yarnpkg.com/yggdrasil/-/yggdrasil-1.7.0.tgz#bfe9fabfd3600078cd1fa0d4445bf6fc6bf46149"
+  integrity sha512-QBIo5fiNd7688G3FqXXYGr36uyrYzczlNuzpWFy2zL3+R+3KT2lF+wFxm51synfA3l3z6IBiGOc1/EVXWCYY1Q==
   dependencies:
     node-fetch "^2.6.1"
     uuid "^8.2.0"
