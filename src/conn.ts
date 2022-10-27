@@ -218,10 +218,10 @@ export class Conn {
       }
       if (isCanceled) return
       if (!wasChanged && this.optimizePacketWrite) {
-        pclient.writeRaw(buffer)
+        this.writeRaw(buffer)
         return
       }
-      pclient.write(meta.name, packetData);
+      this.write(meta.name, packetData);
     };
     handle().catch(console.error);
   }
