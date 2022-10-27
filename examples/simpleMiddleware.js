@@ -2,7 +2,6 @@
 // with "@rob9315/mcproxy" in your project
 const { Conn } = require('..');
 const { createServer } = require('minecraft-protocol');
-const wait = require('util').promisify(setTimeout);
 
 if (process.argv.length < 4 || process.argv.length > 6) {
   console.log('Usage : node simpleMiddleware.js <host> <port> [<name>] [<password>]');
@@ -22,10 +21,10 @@ conn.bot.once('spawn', () => {
   console.log('spawn');
 
   /** @type {import('../lib/index').PacketMiddleware} */
-  const filterChatMiddleware = (info, pclient, data, cancel, update) => {
-    if (cancel.isCanceled) return; // Not necessary but may improve performance when using multiple middleware's after each other
-    if (info.meta.name !== 'chat') return;
-    if (JSON.stringify(data.message).includes('censor')) return cancel(); // Cancel all packets that have the word censor in the chat message string
+  const filterChatMiddleware = ({ isCanceled, meta }) => {
+    if (isCanceled) return; // Not necessary but may improve performance when using multiple middleware's after each other
+    if (meta.name !== 'chat') return;
+    if (JSON.stringify(data.message).includes('censor')) return false; // Cancel all packets that have the word censor in the chat message string
   };
 
   const server = createServer({

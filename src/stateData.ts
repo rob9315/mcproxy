@@ -39,24 +39,29 @@ export class StateData {
    * @param name 
    * @param packetData 
    */
-  onSToCPacket(name: string, packetData: any) {
+  onSToCPacket(name: string, packetDataGetter: () => any) {
+    let packetData
     switch (name) {
       case 'position':
+        packetData = packetDataGetter()
         this.bot.entity.position.x = packetData.x;
         this.bot.entity.position.y = packetData.y;
         this.bot.entity.position.z = packetData.z;
         this.bot.entity.onGround = packetData.onGround;
         break;
       case 'position_look': // FALLTHROUGH
+        packetData = packetDataGetter()
         this.bot.entity.position.x = packetData.x;
         this.bot.entity.position.y = packetData.y;
         this.bot.entity.position.z = packetData.z;
       case 'look':
+        packetData = packetDataGetter()
         this.bot.entity.yaw = ((180 - packetData.yaw) * Math.PI) / 180;
         this.bot.entity.pitch = -(packetData.pitch * Math.PI) / 180;
         this.bot.entity.onGround = packetData.onGround;
         break;
       case 'held_item_slot':
+        packetData = packetDataGetter()
         this.bot.quickBarSlot = packetData.slot; // Carefull S->C is slot where C->S is slotId (????)
         break;
     }

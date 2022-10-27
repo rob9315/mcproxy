@@ -22,9 +22,9 @@ export type Client = mcpClient & {
 export class ConnOptions {
   optimizePacketWrite: boolean = true;
   //* Middleware to control packets being send to the client and server
-  toClientMiddleware?: PacketMiddleware[] = [() => {}];
+  toClientMiddleware?: PacketMiddleware[] = [];
   //* Middleware to control packets being send to the client and server
-  toServerMiddleware?: PacketMiddleware[] = [() => {}];
+  toServerMiddleware?: PacketMiddleware[] = [];
 }
 
 export interface PacketCanceler {
@@ -40,29 +40,6 @@ export interface packetUpdater {
   isUpdated: boolean;
 }
 
-/**
- * Middleware manager for packets. Used to modify cancel or delay packets being send to the client or server.
- */
-export interface PacketMiddleware {
-  /** Contains meta information about the packet that is triggered. See the properties for more info. */
-  (
-    info: {
-      /** Direction the packet is going. Should always be the same direction depending on what middleware direction you
-       * are registering.
-       */
-      bound: 'server' | 'client';
-      /** Only 'packet' is implemented */
-      writeType: 'packet' | 'rawPacket' | 'channel';
-      /** Packet meta. Contains the packet name under `name` also see {@link PacketMeta} */
-      meta: PacketMeta;
-    },
-    /** The client connected to this packet */ pclient: Client,
-    /** Parsed packet data as returned by nmp */ data: any,
-    /** A handle to cancel a packet from being send. Can also force a packet to be send */ cancel: PacketCanceler,
-    /** Indicate that a packet has been modified */ update: packetUpdater
-  ): void | Promise<void>;
-}
-
 interface PacketData {
   /** Direction the packet is going. Should always be the same direction depending on what middleware direction you
    * are registering.
@@ -76,15 +53,15 @@ interface PacketData {
   pclient: Client,
   /** Parsed packet data as returned by nmp */
   data: any,
-  /** A handle to cancel a packet from being send. Can also force a packet to be send */
-  cancel: PacketCanceler,
-  /** Indicate that a packet has been modified */
-  update: packetUpdater
+  /** Indicator if the packet is canceled or not */
+  isCanceled: boolean
 }
 
-export interface PacketMiddleware2 {
-  (packetData: PacketData): PacketData | Promise<PacketData>
+export interface PacketMiddleware {
+  (packetData: PacketData): PacketMiddlewareReturnValue | Promise<PacketMiddlewareReturnValue>
 }
+
+type PacketMiddlewareReturnValue = PacketData | undefined | false 
 
 export class Conn {
   options: ConnOptions;
@@ -133,48 +110,65 @@ export class Conn {
    */
   async onServerRaw(buffer: Buffer, meta: PacketMeta) {
     if (meta.state !== 'play') return;
-    // @ts-ignore-error
-    const packetData = this.bot._client.deserializer.parsePacketBuffer(buffer).data.params;
+
+    let _packetData: any | undefined = undefined
+    const getPacketData = () => {
+      if (!_packetData) {
+        _packetData = this.client.deserializer.parsePacketBuffer(buffer).data.params;
+      }
+      return _packetData
+    }
+
     //* keep mineflayer info up to date
     switch (meta.name) {
       case 'abilities':
+        let packetData = getPacketData()
         this.stateData.bot.physicsEnabled = !this.writingClient && !!((packetData.flags & 0b10) ^ 0b10);
       default: // Fallthrough
-        this.stateData.onSToCPacket(meta.name, packetData)
+        this.stateData.onSToCPacket(meta.name, getPacketData)
     }
     for (const pclient of this.receivingClients) {
       if (pclient.state !== states.PLAY || meta.state !== states.PLAY) {
         continue;
       }
-      // Build packet canceler function used by middleware
-      const cancel: PacketCanceler = Object.assign(
-        (unCancel: boolean = false) => {
-          cancel.isCanceled = unCancel ? false : true;
-          update.isUpdated = true;
+
+      let packetData: PacketData = {
+        bound: 'client', meta, writeType: 'packet', pclient, data: {}, isCanceled: false
+      }
+      let wasChanged = false
+      let isCanceled = false
+      let currentData: PacketData = packetData
+      Object.defineProperties(packetData, {
+        data: {
+          get: () => {
+            wasChanged = true
+            return getPacketData()
+          }
         },
-        { isCanceled: false }
-      );
-      const update: packetUpdater = Object.assign(
-        (unUpdate: boolean = false) => {
-          update.isUpdated = !unUpdate;
-        },
-        { isUpdated: false }
-      );
+        isCanceled: {
+          get: () => {
+            return isCanceled
+          }
+        }
+      })
 
       for (const middleware of pclient.toClientMiddlewares) {
-        const funcReturn = middleware({ bound: 'client', meta, writeType: 'packet' }, pclient, packetData, cancel, update);
+        let data: PacketMiddlewareReturnValue
+        const funcReturn = middleware(currentData);
         if (funcReturn instanceof Promise) {
-          await funcReturn;
+          data = await funcReturn;
+        } else {
+          data = funcReturn
+        }
+        isCanceled = data === false
+        if (data !== undefined && data !== false) {
+          currentData = data
         }
       }
-      // TODO: figure out what packet is breaking crafting on 2b2t
-      // Hint: It is the recipes unlock packet that is send when crafting an item.
-      // Probably some bad unlocked recipes packet reconstruction on login that is causing packets send after to crash the client.
-
-      if (cancel.isCanceled !== false) continue;
-      if (!update.isUpdated && this.optimizePacketWrite) {
-        pclient.writeRaw(buffer);
-        continue;
+      if (isCanceled) continue
+      if (!wasChanged && this.optimizePacketWrite) {
+        pclient.writeRaw(buffer)
+        continue
       }
       pclient.write(meta.name, packetData);
     }
@@ -189,33 +183,45 @@ export class Conn {
   onClientPacket(data: any, meta: PacketMeta, buffer: Buffer, pclient: Client) {
     if (meta.state !== 'play') return;
     const handle = async () => {
-      // Build packet canceler function used by middleware
-      const cancel: PacketCanceler = Object.assign(
-        (unCancel: boolean = false) => {
-          cancel.isCanceled = unCancel ? false : true;
-          update.isUpdated = true;
+      let packetData: PacketData = {
+        bound: 'server', meta, writeType: 'packet', pclient, data: {}, isCanceled: false
+      }
+      let wasChanged = false
+      let isCanceled = false
+      let currentData: PacketData = packetData
+      Object.defineProperties(packetData, {
+        data: {
+          get: () => {
+            wasChanged = true
+            return data
+          }
         },
-        { isCanceled: false }
-      );
-      const update: packetUpdater = Object.assign(
-        (unUpdate: boolean = false) => {
-          update.isUpdated = !unUpdate;
-        },
-        { isUpdated: false }
-      );
+        isCanceled: {
+          get: () => {
+            return isCanceled
+          }
+        }
+      })
 
       for (const middleware of pclient.toServerMiddlewares) {
-        const funcReturn = middleware({ bound: 'server', meta, writeType: 'packet' }, pclient, data, cancel, update);
+        let data: PacketMiddlewareReturnValue
+        const funcReturn = middleware(currentData);
         if (funcReturn instanceof Promise) {
-          await funcReturn;
+          data = await funcReturn;
+        } else {
+          data = funcReturn
+        }
+        isCanceled = data === false
+        if (data !== undefined && data !== false) {
+          currentData = data
         }
       }
-      if (cancel.isCanceled !== false) return;
-      if (!update.isUpdated && this.optimizePacketWrite) {
-        this.writeRaw(buffer);
-        return;
+      if (isCanceled) return
+      if (!wasChanged && this.optimizePacketWrite) {
+        pclient.writeRaw(buffer)
+        return
       }
-      this.write(meta.name, data);
+      pclient.write(meta.name, packetData);
     };
     handle().catch(console.error);
   }
@@ -226,8 +232,8 @@ export class Conn {
    */
   private serverClientDefaultMiddleware(pclient: Client) {
     if (!pclient.toClientMiddlewares) pclient.toClientMiddlewares = [];
-    const _internalMcProxyServerClient: PacketMiddleware = (info, pclient, data, cancel, update) => {
-      if (!this.receivingClients.includes(pclient)) return cancel();
+    const _internalMcProxyServerClient: PacketMiddleware = () => {
+      if (!this.receivingClients.includes(pclient)) return false
     };
     pclient.toClientMiddlewares.push(_internalMcProxyServerClient);
     if (this.toClientDefaultMiddleware) pclient.toClientMiddlewares.push(...this.toClientDefaultMiddleware);
@@ -239,32 +245,32 @@ export class Conn {
    */
   private clientServerDefaultMiddleware(pclient: Client) {
     if (!pclient.toServerMiddlewares) pclient.toServerMiddlewares = [];
-    const _internalMcProxyClientServer: PacketMiddleware = (info, pclient, data: any, cancel) => {
-      if (info.meta.state !== 'play') return cancel();
-      if (info.meta.name === 'teleport_confirm' && data?.teleportId === 0) {
+    const _internalMcProxyClientServer: PacketMiddleware = ({ meta, data }) => {
+      if (meta.state !== 'play') return false;
+      if (meta.name === 'teleport_confirm' && data?.teleportId === 0) {
         pclient.write('position', {
           ...this.stateData.bot.entity.position,
           yaw: 180 - (this.stateData.bot.entity.yaw * 180) / Math.PI,
           pitch: -(this.stateData.bot.entity.pitch * 180) / Math.PI,
           teleportId: 1,
         });
-        cancel();
+        return false;
       }
       //* check if client is authorized to modify connection (sending packets and state information from mineflayer)
       if (this.writingClient !== pclient) {
-        return cancel();
+        return false;
       }
       // Keep the bot updated
       // Note: Packets seam to be the exact same going from server to client and the other way around.
       // At least for 1.12.2. So this is just copy past from onServerRaw
-      switch (info.meta.name) {
+      switch (meta.name) {
         case 'abilities':
           this.stateData.bot.physicsEnabled = !this.writingClient && !!((data.flags & 0b10) ^ 0b10);
           break;
         default:
-          this.stateData.onCToSPacket(info.meta.name, data)
+          this.stateData.onCToSPacket(meta.name, data)
       }
-      if (info.meta.name === 'keep_alive') cancel(); // Already handled by the bot client
+      if (meta.name === 'keep_alive') return false; // Already handled by the bot client
     };
     pclient.toServerMiddlewares.push(_internalMcProxyClientServer.bind(this));
     if (this.toServerDefaultMiddleware) pclient.toServerMiddlewares.push(...this.toServerDefaultMiddleware);
@@ -272,18 +278,18 @@ export class Conn {
 
   private getBotToServerMiddleware(): PacketMiddleware {
     const packetWhitelist = ['keep_alive'] // Packets that are send to the server even tho the bot is not controlling
-    return (info, pclient, data, cancel, update) => {
-      if (packetWhitelist.includes(info.meta.name)) return
+    return ({ meta }) => {
+      if (packetWhitelist.includes(meta.name)) return false
       if (this.writingClient) { // If there is a writing client cancel all packets
-        cancel()
-        return
+        return false
       }
     }
   }
 
   private getServerToBotMiddleware(): PacketMiddleware {
-    return (info, pclient, data, cancel, update) => {
+    return () => {
       // Do not cancel on incoming packets to keep the bot updated
+      return undefined
     }
   }
 
