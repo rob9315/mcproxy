@@ -2,6 +2,7 @@ import type { Bot } from 'mineflayer';
 import type { Client, Packet } from './conn';
 import { SmartBuffer } from 'smart-buffer';
 import { Vec3 } from 'vec3';
+import { StateData } from './stateData';
 
 const MAX_CHUNK_DATA_LENGTH = 31598;
 
@@ -47,7 +48,8 @@ export function sendTo(pclient: Client, ...args: PacketTuple[]) {
   }
 }
 
-export function getLoginSequencePackets(bot: Bot & { recipes: number[] }, pclient?: Client): Packet[] {
+export function getLoginSequencePackets(stateData: StateData, pclient?: Client): Packet[] {
+  const bot = stateData.bot
   //* if not spawned yet, return nothing
   if (!bot.entity) return [];
 
