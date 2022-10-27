@@ -21,9 +21,9 @@ export type Client = mcpClient & {
 
 export class ConnOptions {
   optimizePacketWrite: boolean = true;
-  //* Middleware to control packets being send to the client and server
+  //* Middleware to control packets being sent from the server to the client
   toClientMiddleware?: PacketMiddleware[] = [];
-  //* Middleware to control packets being send to the client and server
+  //* Middleware to control packets being sent from the client to the server
   toServerMiddleware?: PacketMiddleware[] = [];
 }
 
@@ -71,9 +71,9 @@ export class Conn {
   // private internalWhitelist: string[] = ['keep_alive'];
   optimizePacketWrite: boolean = true;
   /** Contains the currently writing client or undefined if there is none */
-  writingClient: Client | undefined;
+  pclient: Client | undefined;
   /** Contains clients that are actively receiving packets from the proxy bot */
-  receivingClients: Client[] = [];
+  pclients: Client[] = [];
   toClientDefaultMiddleware?: PacketMiddleware[] = undefined;
   toServerDefaultMiddleware?: PacketMiddleware[] = undefined;
   serverToBotDefaultMiddleware: PacketMiddleware
@@ -85,7 +85,7 @@ export class Conn {
     this.options = { ...new ConnOptions(), ...options };
     this.client = createClient(botOptions)
     this.stateData = new StateData(createBot({ ...botOptions, client: this.client }))
-    this.receivingClients = [];
+    this.pclients = [];
     this.serverToBotDefaultMiddleware = this.getServerToBotMiddleware()
     this.botToServerDefaultMiddleware = this.getBotToServerMiddleware()
     this.write = this.client.write.bind(this.client);
@@ -123,11 +123,11 @@ export class Conn {
     switch (meta.name) {
       case 'abilities':
         let packetData = getPacketData()
-        this.stateData.bot.physicsEnabled = !this.writingClient && !!((packetData.flags & 0b10) ^ 0b10);
+        this.stateData.bot.physicsEnabled = !this.pclient && !!((packetData.flags & 0b10) ^ 0b10);
       default: // Fallthrough
         this.stateData.onSToCPacket(meta.name, getPacketData)
     }
-    for (const pclient of this.receivingClients) {
+    for (const pclient of this.pclients) {
       if (pclient.state !== states.PLAY || meta.state !== states.PLAY) {
         continue;
       }
@@ -233,7 +233,7 @@ export class Conn {
   private serverClientDefaultMiddleware(pclient: Client) {
     if (!pclient.toClientMiddlewares) pclient.toClientMiddlewares = [];
     const _internalMcProxyServerClient: PacketMiddleware = () => {
-      if (!this.receivingClients.includes(pclient)) return false
+      if (!this.pclients.includes(pclient)) return false
     };
     pclient.toClientMiddlewares.push(_internalMcProxyServerClient);
     if (this.toClientDefaultMiddleware) pclient.toClientMiddlewares.push(...this.toClientDefaultMiddleware);
@@ -257,7 +257,7 @@ export class Conn {
         return false;
       }
       //* check if client is authorized to modify connection (sending packets and state information from mineflayer)
-      if (this.writingClient !== pclient) {
+      if (this.pclient !== pclient) {
         return false;
       }
       // Keep the bot updated
@@ -265,7 +265,7 @@ export class Conn {
       // At least for 1.12.2. So this is just copy past from onServerRaw
       switch (meta.name) {
         case 'abilities':
-          this.stateData.bot.physicsEnabled = !this.writingClient && !!((data.flags & 0b10) ^ 0b10);
+          this.stateData.bot.physicsEnabled = !this.pclient && !!((data.flags & 0b10) ^ 0b10);
           break;
         default:
           this.stateData.onCToSPacket(meta.name, data)
@@ -280,7 +280,7 @@ export class Conn {
     const packetWhitelist = ['keep_alive'] // Packets that are send to the server even tho the bot is not controlling
     return ({ meta }) => {
       if (packetWhitelist.includes(meta.name)) return false
-      if (this.writingClient) { // If there is a writing client cancel all packets
+      if (this.pclient) { // If there is a writing client cancel all packets
         return false
       }
     }
@@ -318,10 +318,10 @@ export class Conn {
    * @param options
    */
   attach(pclient: Client, options?: { toClientMiddleware?: PacketMiddleware[]; toServerMiddleware?: PacketMiddleware[] }) {
-    if (!this.receivingClients.includes(pclient)) {
+    if (!this.pclients.includes(pclient)) {
       this.clientServerDefaultMiddleware(pclient);
       this.serverClientDefaultMiddleware(pclient);
-      this.receivingClients.push(pclient);
+      this.pclients.push(pclient);
       const packetListener = (data: any, meta: PacketMeta, buffer: Buffer) => this.onClientPacket(data, meta, buffer, pclient);
       const cleanup = () => {
         pclient.removeListener('packet', packetListener);
@@ -346,9 +346,9 @@ export class Conn {
    * @param pClient Client to detach
    */
   detach(pClient: Client) {
-    this.receivingClients = this.receivingClients.filter((c) => c !== pClient);
+    this.pclients = this.pclients.filter((c) => c !== pClient);
     pClient.emit('mcproxy:detach');
-    if (this.writingClient === pClient) this.unlink();
+    if (this.pclient === pClient) this.unlink();
   }
 
   /**
@@ -359,8 +359,8 @@ export class Conn {
    * @param options Extra options like extra middleware to be used for the client.
    */
   link(pClient: Client, options?: { toClientMiddleware?: PacketMiddleware[] }) {
-    if (this.writingClient) this.unlink(); // Does this even matter? Maybe just keep it for future use when unlink does more.
-    this.writingClient = pClient;
+    if (this.pclient) this.unlink(); // Does this even matter? Maybe just keep it for future use when unlink does more.
+    this.pclient = pClient;
     this.stateData.bot.physicsEnabled = false
     // this.bot._client.write = this.writeIf.bind(this);
     // this.bot._client.writeRaw = () => {};
@@ -373,12 +373,12 @@ export class Conn {
    * Doesn't remove the client from the receivingClients array, it is still attached.
    */
   unlink() {
-    if (this.writingClient) {
+    if (this.pclient) {
       this.stateData.bot.physicsEnabled = true
       // this.bot._client.write = this.write.bind(this.bot._client);
       // this.bot._client.writeRaw = this.writeRaw.bind(this.bot._client);
       // this.bot._client.writeChannel = this.writeChannel.bind(this.bot._client);
-      this.writingClient = undefined;
+      this.pclient = undefined;
     }
   }
 
@@ -414,6 +414,6 @@ export class Conn {
   //* disconnect from the server and ends, detaches all pclients
   disconnect() {
     this.stateData.bot._client.end('conn: disconnect called');
-    this.receivingClients.forEach(this.detach.bind(this));
+    this.pclients.forEach(this.detach.bind(this));
   }
 }
