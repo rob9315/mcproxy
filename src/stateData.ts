@@ -2,6 +2,7 @@ import type { Bot } from "mineflayer"
 
 export class StateData {
   recipes: number[] = []
+  flying: boolean = false
   bot: Bot
 
   constructor(bot: Bot) {
@@ -31,6 +32,8 @@ export class StateData {
         this.bot.quickBarSlot = data.slot;
         this.bot._client.emit('mcproxy:heldItemSlotUpdate') // lol idk how to do it better
         break;
+      case 'abilities':
+        this.flying = !!((data.flags & 0b10) ^ 0b10)
     }
   }
 

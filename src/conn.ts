@@ -123,7 +123,8 @@ export class Conn {
     switch (meta.name) {
       case 'abilities':
         let packetData = getPacketData()
-        this.stateData.bot.physicsEnabled = !this.pclient && !!((packetData.flags & 0b10) ^ 0b10);
+        this.stateData.flying = !!((packetData.flags & 0b10) ^ 0b10)
+        this.stateData.bot.physicsEnabled = !this.pclient && this.stateData.flying;
       default: // Fallthrough
         this.stateData.onSToCPacket(meta.name, getPacketData)
     }
@@ -260,16 +261,8 @@ export class Conn {
       if (this.pclient !== pclient) {
         return false;
       }
-      // Keep the bot updated
-      // Note: Packets seam to be the exact same going from server to client and the other way around.
-      // At least for 1.12.2. So this is just copy past from onServerRaw
-      switch (meta.name) {
-        case 'abilities':
-          this.stateData.bot.physicsEnabled = !this.pclient && !!((data.flags & 0b10) ^ 0b10);
-          break;
-        default:
-          this.stateData.onCToSPacket(meta.name, data)
-      }
+      // Keep the bot updated from packets that are send by the client to the server
+      this.stateData.onCToSPacket(meta.name, data)
       if (meta.name === 'keep_alive') return false; // Already handled by the bot client
     };
     pclient.toServerMiddlewares.push(_internalMcProxyClientServer.bind(this));
@@ -374,7 +367,7 @@ export class Conn {
    */
   unlink() {
     if (this.pclient) {
-      this.stateData.bot.physicsEnabled = true
+      this.stateData.bot.physicsEnabled = this.stateData.flying
       // this.bot._client.write = this.write.bind(this.bot._client);
       // this.bot._client.writeRaw = this.writeRaw.bind(this.bot._client);
       // this.bot._client.writeChannel = this.writeChannel.bind(this.bot._client);
