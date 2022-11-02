@@ -52,45 +52,33 @@ The Client class is the same as the minecraft-protocol client class with the one
 - `toClientMiddlewares` - `Middleware[]`. To client middleware array
 - `toServerMiddlewares` - `Middleware[]`. To server middleware array
 
-#### `Packet`
-
-A tuple consisting of the name and data of the packet. Reason for this is to be easily used with the .write function of any client.
-
-```ts
-import type { Packet } from '@rob9315/mcproxy';
-const packet: Packet = ['chat', { message: 'Welcome to mcproxy!', position: 0 }];
-pclient.write(...packet);
-```
-
-#### `PacketMeta`
-
-The packet meta. Name is the packet name. State can be play or login (?).
-
-```ts
-name: string;
-state: States;
-```
-
 #### `Middleware`
 
-A function to interact with send packets between a connected client and the server.
+A function to interact with send packets between a connected client and the server. The middleware function should return different values depending on what should be done with the packet:
 
-##### Arguments:
+- Changing packets: Return the new packet data
+- Canceling the packet: Return `false`
+- Do nothing: Return `undefined`
 
-- `info` - Object that contains meta info about the packet.
-  - `bound` - String. Either `'client'` or `'server'`. Will always be the same depending on If the middleware was attached as a to Client or to Server middleware.
-  - `meta` - The `PacketMeta` off the send packet.
-  - `writeType` - Only `'packet'` at the moment
-- `pclient` - `Client`. The client this packet belongs to or is destined to.
-- `data` - The parsed packet data. See the [prismarine data](https://minecraft-data.prismarine.js.org/?d=protocol) for protocol specific packet data.
-- `cancel` - The packet canceler function. If you want cancel a packet you call this function. Also has a `isCanceled` attribute to check if a packet is already canceled or not. Can be called with the first argument as `false` to revers an already set canceled attribute to un cancel a packet.
-- `update` - The packet updater. If a packet has been changed this function should be called. This can be used to speed up middleware performance by only serializing packets that have been changed. Has an attribute `isUpdated` to check if the current packet will be treated as updated or not. Can be called with the first argument as `false` to revers an already set update attribute to un update a packet.
+The returned value can also be wrapped in a promise. The middleware will await the promise result before continuing to process the packet.
+
+##### Middleware Arguments:
+
+- `data` - Object that contains the packet in transit
+  - `bound` - Either `server` or `client`. The direction the packet is traveling in.
+  - `writeType` - At the moment only `packet`. The type off the packet in transit.
+  - `meta` - Object of Packet meta
+    - `name` - Packet name
+    - `state` - Packet state
+  - `pclient` - The client connected to this packet. Either the client sending the packet or undefined if the packet is send by the server
+  - `data` - Parsed packet data
+  - `isCanceled` - Boolean if the packet has already been canceled or not
 
 ```ts
-const middlewareFunction: PacketMiddleware = (info, pclient, data: any, cancel) => {
-  if (cancel.isCanceled) return; // Not necessary but may improve performance when using multiple middleware's after each other
-  if (info.meta.name !== 'chat') return;
-  if (JSON.stringify(data.message).includes('censor')) return cancel(); // Cancel all packets that have the word censor in the chat message string
+const middlewareFunction: PacketMiddleware = ({ meta, isCanceled }) => {
+  if (isCanceled) return; // Not necessary but may improve performance when using multiple middleware's after each other
+  if (meta.name !== 'chat') return; // Returns undefined so the packet is not affected
+  if (data.message.includes('censor')) return false; // Cancel all packets that have the word censor in the chat message string
 };
 ```
 
