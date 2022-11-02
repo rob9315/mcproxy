@@ -125,8 +125,6 @@ export class Conn {
         let packetData = getPacketData()
         this.stateData.flying = !!((packetData.flags & 0b10) ^ 0b10)
         this.stateData.bot.physicsEnabled = !this.pclient && this.stateData.flying;
-      default: // Fallthrough
-        this.stateData.onSToCPacket(meta.name, getPacketData)
     }
     for (const pclient of this.pclients) {
       if (pclient.state !== states.PLAY || meta.state !== states.PLAY) {
@@ -261,7 +259,7 @@ export class Conn {
       if (this.pclient !== pclient) {
         return false;
       }
-      // Keep the bot updated from packets that are send by the client to the server
+      // Keep the bot updated from packets that are send by the controlling client to the server
       this.stateData.onCToSPacket(meta.name, data)
       if (meta.name === 'keep_alive') return false; // Already handled by the bot client
     };
