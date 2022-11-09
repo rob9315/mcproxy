@@ -18,7 +18,8 @@
   "types": "lib/index.d.ts",
   "scripts": {
     "build": "npx tsc",
-    "prepublish": "npm run build"
+    "prepublish": "npm run build",
+    "fix": "standard-markdown --fix"
   },
   "prettier": "@rob9315/prettier-config",
   "dependencies": {
@@ -31,6 +32,7 @@
   "devDependencies": {
     "@rob9315/prettier-config": "latest",
     "@types/node": "^16.6.2",
-    "typescript": "^4.3.5"
+    "typescript": "^4.3.5",
+    "standard-markdown": "^7.1.0"
   }
 }

@@ -67,6 +67,7 @@ export class Conn {
   options: ConnOptions;
   stateData: StateData
   client: mcpClient
+  /** @deprecated Use `Conn.stateData.bot` instead */
   bot: Bot
   /** Internal whitelist for the bot */
   // private internalWhitelist: string[] = ['keep_alive'];
