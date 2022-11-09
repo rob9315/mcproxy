@@ -50,7 +50,7 @@ interface PacketData {
   /** Packet meta. Contains the packet name under `name` also see {@link PacketMeta} */
   meta: PacketMeta;
   /** The client connected to this packet */
-  pclient: Client,
+  pclient: Client | null,
   /** Parsed packet data as returned by nmp */
   data: any,
   /** Indicator if the packet is canceled or not */
@@ -67,6 +67,7 @@ export class Conn {
   options: ConnOptions;
   stateData: StateData
   client: mcpClient
+  bot: Bot
   /** Internal whitelist for the bot */
   // private internalWhitelist: string[] = ['keep_alive'];
   optimizePacketWrite: boolean = true;
@@ -84,7 +85,8 @@ export class Conn {
   constructor(botOptions: BotOptions, options?: Partial<ConnOptions>) {
     this.options = { ...new ConnOptions(), ...options };
     this.client = createClient(botOptions)
-    this.stateData = new StateData(createBot({ ...botOptions, client: this.client }))
+    this.bot = createBot({ ...botOptions, client: this.client })
+    this.stateData = new StateData(this.bot)
     this.pclients = [];
     this.serverToBotDefaultMiddleware = this.getServerToBotMiddleware()
     this.botToServerDefaultMiddleware = this.getBotToServerMiddleware()
@@ -136,7 +138,6 @@ export class Conn {
       }
       let wasChanged = false
       let isCanceled = false
-      let currentData: PacketData = packetData
       Object.defineProperties(packetData, {
         data: {
           get: () => {
@@ -150,6 +151,7 @@ export class Conn {
           }
         }
       })
+      let currentData: PacketData = packetData
 
       for (const middleware of pclient.toClientMiddlewares) {
         let data: PacketMiddlewareReturnValue
@@ -169,7 +171,7 @@ export class Conn {
         pclient.writeRaw(buffer)
         continue
       }
-      pclient.write(meta.name, packetData);
+      pclient.write(meta.name, currentData);
     }
   }
 
@@ -183,11 +185,13 @@ export class Conn {
     if (meta.state !== 'play') return;
     const handle = async () => {
       let packetData: PacketData = {
-        bound: 'server', meta, writeType: 'packet', pclient, data: {}, isCanceled: false
+        bound: 'server', meta, writeType: 'packet', pclient, data, isCanceled: false
       }
       let wasChanged = false
       let isCanceled = false
-      let currentData: PacketData = packetData
+      let currentData: PacketData = {
+        ...packetData
+      }
       Object.defineProperties(packetData, {
         data: {
           get: () => {
@@ -270,10 +274,8 @@ export class Conn {
   private getBotToServerMiddleware(): PacketMiddleware {
     const packetWhitelist = ['keep_alive'] // Packets that are send to the server even tho the bot is not controlling
     return ({ meta }) => {
-      if (packetWhitelist.includes(meta.name)) return false
-      if (this.pclient) { // If there is a writing client cancel all packets
-        return false
-      }
+      if (packetWhitelist.includes(meta.name)) return undefined
+      return this.pclient === undefined ? undefined : false
     }
   }
 
@@ -353,9 +355,9 @@ export class Conn {
     if (this.pclient) this.unlink(); // Does this even matter? Maybe just keep it for future use when unlink does more.
     this.pclient = pClient;
     this.stateData.bot.physicsEnabled = false
-    // this.bot._client.write = this.writeIf.bind(this);
-    // this.bot._client.writeRaw = () => {};
-    // this.bot._client.writeChannel = () => {};
+    this.client.write = this.writeIf.bind(this);
+    this.client.writeRaw = () => {};
+    this.client.writeChannel = () => {};
     this.attach(pClient, options);
   }
 
@@ -366,41 +368,35 @@ export class Conn {
   unlink() {
     if (this.pclient) {
       this.stateData.bot.physicsEnabled = this.stateData.flying
-      // this.bot._client.write = this.write.bind(this.bot._client);
-      // this.bot._client.writeRaw = this.writeRaw.bind(this.bot._client);
-      // this.bot._client.writeChannel = this.writeChannel.bind(this.bot._client);
+      this.client.write = this.write.bind(this.client);
+      this.client.writeRaw = this.writeRaw.bind(this.client);
+      this.client.writeChannel = this.writeChannel.bind(this.client);
       this.pclient = undefined;
     }
   }
 
   //* internal filter
-  async writeIf(name: string, data: any) {
+  async writeIf(name: string, packetData: any) {
     // if (this.internalWhitelist.includes(name)) this.write(name, data);
 
-    const state = this.stateData.bot._client.state
+    const state = this.client.state
     // Build packet canceler function used by middleware
-    const cancel: PacketCanceler = Object.assign(
-      (unCancel: boolean = false) => {
-        cancel.isCanceled = unCancel ? false : true;
-        update.isUpdated = true;
-      },
-      { isCanceled: false }
-    );
-    const update: packetUpdater = Object.assign(
-      (unUpdate: boolean = false) => {
-        update.isUpdated = !unUpdate;
-      },
-      { isUpdated: false }
-    );
 
-    // @ts-ignore
-    const funcReturn = this.botToServerDefaultMiddleware({ bound: 'client', meta: { state, name }, writeType: 'packet' }, null, data, cancel, update);
+    let data: PacketMiddlewareReturnValue = packetData
+    const funcReturn = this.botToServerDefaultMiddleware({ bound: 'server', meta: { state, name }, writeType: 'packet', data: packetData, pclient: null, isCanceled: false })
     if (funcReturn instanceof Promise) {
-      await funcReturn;
+      data = await funcReturn;
+    } else {
+      data = funcReturn
     }
+    const isCanceled = data === false
+    if (isCanceled) return;
 
-    if (cancel.isCanceled !== false) return;
-    this.write(name, data);
+    if (data === undefined) {
+      this.write(name, packetData);
+    } else {
+      this.write(name, data);
+    }
   }
   //* disconnect from the server and ends, detaches all pclients
   disconnect() {
