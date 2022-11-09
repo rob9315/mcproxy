@@ -2,7 +2,7 @@ import { Bot, BotOptions, createBot } from 'mineflayer';
 import { Client as mcpClient, PacketMeta } from 'minecraft-protocol';
 import { createClient } from 'minecraft-protocol';
 import { states } from 'minecraft-protocol';
-import { getLoginSequencePackets } from './packets';
+import { generatePackets } from './packets';
 import { StateData } from './stateData';
 const bufferEqual = require('buffer-equal');
 
@@ -301,7 +301,7 @@ export class Conn {
    * @param pclient Optional. Does nothing.
    */
   generatePackets(pclient?: Client): Packet[] {
-    return getLoginSequencePackets(this.stateData, pclient);
+    return generatePackets(this.stateData, pclient);
   }
 
   /**

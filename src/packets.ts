@@ -48,7 +48,7 @@ export function sendTo(pclient: Client, ...args: PacketTuple[]) {
   }
 }
 
-export function getLoginSequencePackets(stateData: StateData, pclient?: Client): Packet[] {
+export function generatePackets(stateData: StateData, pclient?: Client): Packet[] {
   const bot = stateData.bot
   //* if not spawned yet, return nothing
   if (!bot.entity) return [];

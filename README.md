@@ -82,11 +82,11 @@ const middlewareFunction: PacketMiddleware = ({ meta, isCanceled }) => {
 };
 ```
 
-### `getLoginSequencePackets()`
+### `generatePackets()`
 
 ```ts
-import { getLoginSequencePackets } from '@rob9315/mcproxy';
-let packets: Packet[] = getLoginSequencePackets(bot, pclient?: Client);
+import { generatePackets } from '@rob9315/mcproxy';
+let packets: Packet[] = generatePackets(bot, pclient?: Client);
 packets.forEach((packet)=>pclient.write(...packet));
 ```
 
