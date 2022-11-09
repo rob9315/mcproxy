@@ -24,7 +24,7 @@ conn.bot.once('spawn', () => {
   const filterChatMiddleware = ({ isCanceled, meta }) => {
     if (isCanceled) return; // Not necessary but may improve performance when using multiple middleware's after each other
     if (meta.name !== 'chat') return;
-    if (JSON.stringify(data.message).includes('censor')) return false; // Cancel all packets that have the word censor in the chat message string
+    if (data.message.includes('censor')) return false; // Cancel all packets that have the word censor in the chat message string
   };
 
   const server = createServer({
