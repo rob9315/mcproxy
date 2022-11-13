@@ -20,6 +20,8 @@ yarn add @rob9315/mcproxy
 pnpm add @rob9315/mcproxy
 ```
 
+It is recommended to use yarn for this project. Altho other package managers should work too.
+
 # API
 
 This project provides the `Conn` class, which enables you to create a connection to a server and connect clients to the Conn instance. The connection will stay after you disconnect from the Conn instance.
