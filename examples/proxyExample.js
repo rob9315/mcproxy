@@ -6,7 +6,7 @@ const minecraft_protocol = require('minecraft-protocol');
 // initialize bot instance like you would with mineflayer
 // https://github.com/PrismarineJS/mineflayer
 let conn = new mcproxy.Conn({
-  username: 'Ic3Tank',
+  username: 'proxyBot',
   version: '1.12.2',
   host: 'localhost',
   port: 25565,
@@ -14,13 +14,13 @@ let conn = new mcproxy.Conn({
 });
 
 // do stuff with your bot
-conn.bot.on('spawn', async () => {
+conn.stateData.bot.on('spawn', async () => {
   console.log('spawn');
 });
-conn.bot.on('error', (err) => {
+conn.stateData.bot.on('error', (err) => {
   console.error(err);
 });
-conn.bot.on('end', (reason) => {
+conn.stateData.bot.on('end', (reason) => {
   console.error(reason);
   process.exit(1);
 });
