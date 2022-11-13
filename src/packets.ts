@@ -54,8 +54,7 @@ export function generatePackets(stateData: StateData, pclient?: Client): Packet[
   if (!bot.entity) return [];
 
   //* load up some helper methods
-  const { toNotch: itemToNotch }: typeof import('prismarine-item').Item = require('prismarine-item')(pclient?.protocolVersion ?? bot.version);
-  const Vec3: typeof import('vec3').default = require('vec3');
+  const { toNotch: itemToNotch }: typeof import('prismarine-item').Item = require('prismarine-item')(pclient?.version ?? bot.version);
   const UUID = bot.player.uuid; //pclient?.uuid ??
 
   return [
