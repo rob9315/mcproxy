@@ -21,7 +21,7 @@ conn.stateData.bot.once('spawn', () => {
   console.log('spawn');
 
   /** @type {import('../lib/index').PacketMiddleware} */
-  const filterChatMiddleware = ({ isCanceled, meta }) => {
+  const filterChatMiddleware = ({ isCanceled, meta, data }) => {
     if (isCanceled) return; // Not necessary but may improve performance when using multiple middleware's after each other
     if (meta.name !== 'chat') return; // Do nothing if the packet is not a chat packet
     if (data.message.includes('censor')) return false; // Cancel all packets that have the word censor in the chat message string
