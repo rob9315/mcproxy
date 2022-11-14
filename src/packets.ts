@@ -2,8 +2,14 @@ import type { Bot } from 'mineflayer';
 import type { Client, Packet } from './conn';
 import { SmartBuffer } from 'smart-buffer';
 import { Vec3 } from 'vec3';
+import { StateData } from './stateData';
 
 const MAX_CHUNK_DATA_LENGTH = 31598;
+
+export type PacketTuple = {
+  name: string;
+  data: any;
+};
 
 export const dimension: Record<string, number> = {
   'minecraft:end': 1,
@@ -25,13 +31,30 @@ export const difficulty: Record<string, number> = {
   hard: 3,
 };
 
-export function generatePackets(bot: Bot & { recipes: number[] }, pclient?: Client): Packet[] {
+export function packetAbilities(bot: Bot): PacketTuple {
+  return {
+    name: 'abilities',
+    data: {
+      flags: (bot.physicsEnabled ? 0b0 : 0b10) | ([1, 3].includes(bot.player.gamemode) ? 0b0 : 0b100) | (bot.player.gamemode !== 1 ? 0b0 : 0b1000),
+      flyingSpeed: 0.05,
+      walkingSpeed: 0.1,
+    },
+  };
+}
+
+export function sendTo(pclient: Client, ...args: PacketTuple[]) {
+  for (const a of args) {
+    pclient.write(a.name, a.data);
+  }
+}
+
+export function generatePackets(stateData: StateData, pclient?: Client): Packet[] {
+  const bot = stateData.bot;
   //* if not spawned yet, return nothing
   if (!bot.entity) return [];
 
   //* load up some helper methods
-  const { toNotch: itemToNotch }: typeof import('prismarine-item').Item = require('prismarine-item')(pclient?.protocolVersion ?? bot.version);
-  const Vec3: typeof import('vec3').default = require('vec3');
+  const { toNotch: itemToNotch }: typeof import('prismarine-item').Item = require('prismarine-item')(pclient?.version ?? bot.version);
   const UUID = bot.player.uuid; //pclient?.uuid ??
 
   return [
@@ -69,16 +92,16 @@ export function generatePackets(bot: Bot & { recipes: number[] }, pclient?: Clie
     //? tags?
     //? entity status theoretically (current animation playing)
     //? commands / add option to provide own commands
-    [
-      'unlock_recipes',
-      {
-        action: 0,
-        craftingBookOpen: false,
-        filteringCraftable: false,
-        recipes1: bot.recipes,
-        recipes2: bot.recipes,
-      },
-    ],
+    // [
+    //   'unlock_recipes', // This seams to break on 2b2t. If we do not filter recipes, we crash the client.
+    //   {
+    //     action: 0,
+    //     craftingBookOpen: false,
+    //     filteringCraftable: false,
+    //     recipes1: bot.recipes,
+    //     recipes2: bot.recipes,
+    //   },
+    // ],
     //* gamemode
     ['game_state_change', { reason: 3, gameMode: bot.player.gamemode }],
     [
@@ -94,7 +117,7 @@ export function generatePackets(bot: Bot & { recipes: number[] }, pclient?: Clie
       'window_items',
       {
         windowId: 0,
-        items: bot.inventory.slots.map((item) => itemToNotch(item)),
+        items: bot.inventory.slots.map((item: any) => itemToNotch(item)),
       },
     ],
     [
