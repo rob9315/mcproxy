@@ -27,7 +27,7 @@ conn.stateData.bot.once('spawn', () => {
     if (data.message.includes('censor')) return false; // Cancel all packets that have the word censor in the chat message string
   };
 
-  const ServerListenPort = 25566
+  const ServerListenPort = 25566;
 
   const server = createServer({
     motd: 'mc proxy bot',
@@ -45,8 +45,8 @@ conn.stateData.bot.once('spawn', () => {
   });
 
   server.on('listening', () => {
-    console.info(`Server listening on port ${ServerListenPort}`)
-  })
+    console.info(`Server listening on port ${ServerListenPort}`);
+  });
 
   conn.stateData.bot.once('end', () => {
     server.close();

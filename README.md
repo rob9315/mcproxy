@@ -66,7 +66,7 @@ The returned value can also be wrapped in a promise. The middleware will await t
 
 #### Middleware Arguments:
 
-* `data` - Object that contains the packet in transit
+- `data` - Object that contains the packet in transit
   - `bound` - Either `server` or `client`. The direction the packet is traveling in.
   - `writeType` - At the moment only `packet`. The type off the packet in transit.
   - `meta` - Object of Packet meta
@@ -85,17 +85,17 @@ const middlewareFunction: PacketMiddleware = ({ meta, isCanceled }) => {
 ```
 
 ### Class `StateData`
+
 State Keeping class to extend prismarine-worlds missing state keeping information. Also holds the bot reference.
 
-* `recipes` - `number[]` Used to keep track off recipes
-* `flying` - `boolean` Used to keep track off if the proxy should be flying or not
-* `bot` - Bot. A mineflayer bot instance attached to the connection.
+- `recipes` - `number[]` Used to keep track off recipes
+- `flying` - `boolean` Used to keep track off if the proxy should be flying or not
+- `bot` - Bot. A mineflayer bot instance attached to the connection.
 
 ### `generatePackets(stateData: StateData, pclient?: Client)`
 
-* `stateData` - Instance off [`StateData`](#class-statedata)
-* `pclient` - The pclient to generate data for
-
+- `stateData` - Instance off [`StateData`](#class-statedata)
+- `pclient` - The pclient to generate data for
 
 The internal method used to generate packets from a bot and an optional pclient. If a pclient is provided some aspects of the packets are changed such as the uuid and some version specific changes might be done for compatibility (though not all versions are supported \[yet])
 
@@ -119,7 +119,7 @@ An array of all proxyClients which are attached to the Connection. Use [`Conn.at
 
 ### `Conn.generatePackets(pclient?: Client)`
 
-* `pclient` - Optional. Client to specify uuid and entity id when generating packets.
+- `pclient` - Optional. Client to specify uuid and entity id when generating packets.
 
 Returns the generated packets for the current gamestate
 
@@ -129,7 +129,7 @@ Conn.generatePackets(pclient?: Client): Packet[]
 
 ### `Conn.sendPackets(pclient: Client)`
 
-* `pclient` - The client to send the packets to
+- `pclient` - The client to send the packets to
 
 Calls `Conn.generatePackets()` and sends the result to the proxyClient specified
 
@@ -178,7 +178,6 @@ Conn.unlink();
 ```
 
 ### `Conn.writeIf()`
-
 
 An internal method for filtering the bots Packets, can be used outside but as an API method basically useless.
 

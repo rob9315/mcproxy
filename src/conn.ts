@@ -50,25 +50,25 @@ interface PacketData {
   /** Packet meta. Contains the packet name under `name` also see {@link PacketMeta} */
   meta: PacketMeta;
   /** The client connected to this packet */
-  pclient: Client | null,
+  pclient: Client | null;
   /** Parsed packet data as returned by nmp */
-  data: any,
+  data: any;
   /** Indicator if the packet is canceled or not */
-  isCanceled: boolean
+  isCanceled: boolean;
 }
 
 export interface PacketMiddleware {
-  (packetData: PacketData): PacketMiddlewareReturnValue | Promise<PacketMiddlewareReturnValue>
+  (packetData: PacketData): PacketMiddlewareReturnValue | Promise<PacketMiddlewareReturnValue>;
 }
 
-type PacketMiddlewareReturnValue = PacketData | undefined | false 
+type PacketMiddlewareReturnValue = PacketData | undefined | false;
 
 export class Conn {
   options: ConnOptions;
-  stateData: StateData
-  client: mcpClient
+  stateData: StateData;
+  client: mcpClient;
   /** @deprecated Use `Conn.stateData.bot` instead */
-  bot: Bot
+  bot: Bot;
   /** Internal whitelist for the bot */
   // private internalWhitelist: string[] = ['keep_alive'];
   optimizePacketWrite: boolean = true;
@@ -78,19 +78,19 @@ export class Conn {
   pclients: Client[] = [];
   toClientDefaultMiddleware?: PacketMiddleware[] = undefined;
   toServerDefaultMiddleware?: PacketMiddleware[] = undefined;
-  serverToBotDefaultMiddleware: PacketMiddleware
-  botToServerDefaultMiddleware: PacketMiddleware
+  serverToBotDefaultMiddleware: PacketMiddleware;
+  botToServerDefaultMiddleware: PacketMiddleware;
   write: (name: string, data: any) => void;
   writeRaw: (buffer: any) => void;
   writeChannel: (channel: any, params: any) => void;
   constructor(botOptions: BotOptions, options?: Partial<ConnOptions>) {
     this.options = { ...new ConnOptions(), ...options };
-    this.client = createClient(botOptions)
-    this.bot = createBot({ ...botOptions, client: this.client })
-    this.stateData = new StateData(this.bot)
+    this.client = createClient(botOptions);
+    this.bot = createBot({ ...botOptions, client: this.client });
+    this.stateData = new StateData(this.bot);
     this.pclients = [];
-    this.serverToBotDefaultMiddleware = this.getServerToBotMiddleware()
-    this.botToServerDefaultMiddleware = this.getBotToServerMiddleware()
+    this.serverToBotDefaultMiddleware = this.getServerToBotMiddleware();
+    this.botToServerDefaultMiddleware = this.getBotToServerMiddleware();
     this.write = this.client.write.bind(this.client);
     this.writeRaw = this.client.writeRaw.bind(this.client);
     this.writeChannel = this.client.writeChannel.bind(this.client);
@@ -100,7 +100,7 @@ export class Conn {
 
     // this.internalWhitelist = ['keep_alive'];
 
-    this.client.on('raw', this.onServerRaw.bind(this))
+    this.client.on('raw', this.onServerRaw.bind(this));
     // this.bot._client.on('raw', this.onServerRaw.bind(this));
   }
 
@@ -114,19 +114,19 @@ export class Conn {
   async onServerRaw(buffer: Buffer, meta: PacketMeta) {
     if (meta.state !== 'play') return;
 
-    let _packetData: any | undefined = undefined
+    let _packetData: any | undefined = undefined;
     const getPacketData = () => {
       if (!_packetData) {
         _packetData = this.client.deserializer.parsePacketBuffer(buffer).data.params;
       }
-      return _packetData
-    }
+      return _packetData;
+    };
 
     //* keep mineflayer info up to date
     switch (meta.name) {
       case 'abilities':
-        let packetData = getPacketData()
-        this.stateData.flying = !!((packetData.flags & 0b10) ^ 0b10)
+        let packetData = getPacketData();
+        this.stateData.flying = !!((packetData.flags & 0b10) ^ 0b10);
         this.stateData.bot.physicsEnabled = !this.pclient && this.stateData.flying;
     }
     for (const pclient of this.pclients) {
@@ -135,42 +135,47 @@ export class Conn {
       }
 
       let packetData: PacketData = {
-        bound: 'client', meta, writeType: 'packet', pclient, data: {}, isCanceled: false
-      }
-      let wasChanged = false
-      let isCanceled = false
+        bound: 'client',
+        meta,
+        writeType: 'packet',
+        pclient,
+        data: {},
+        isCanceled: false,
+      };
+      let wasChanged = false;
+      let isCanceled = false;
       Object.defineProperties(packetData, {
         data: {
           get: () => {
-            wasChanged = true
-            return getPacketData()
-          }
+            wasChanged = true;
+            return getPacketData();
+          },
         },
         isCanceled: {
           get: () => {
-            return isCanceled
-          }
-        }
-      })
-      let currentData: PacketData = packetData
+            return isCanceled;
+          },
+        },
+      });
+      let currentData: PacketData = packetData;
 
       for (const middleware of pclient.toClientMiddlewares) {
-        let data: PacketMiddlewareReturnValue
+        let data: PacketMiddlewareReturnValue;
         const funcReturn = middleware(currentData);
         if (funcReturn instanceof Promise) {
           data = await funcReturn;
         } else {
-          data = funcReturn
+          data = funcReturn;
         }
-        isCanceled = data === false
+        isCanceled = data === false;
         if (data !== undefined && data !== false) {
-          currentData = data
+          currentData = data;
         }
       }
-      if (isCanceled) continue
+      if (isCanceled) continue;
       if (!wasChanged && this.optimizePacketWrite) {
-        pclient.writeRaw(buffer)
-        continue
+        pclient.writeRaw(buffer);
+        continue;
       }
       pclient.write(meta.name, currentData);
     }
@@ -186,44 +191,49 @@ export class Conn {
     if (meta.state !== 'play') return;
     const handle = async () => {
       let packetData: PacketData = {
-        bound: 'server', meta, writeType: 'packet', pclient, data, isCanceled: false
-      }
-      let wasChanged = false
-      let isCanceled = false
+        bound: 'server',
+        meta,
+        writeType: 'packet',
+        pclient,
+        data,
+        isCanceled: false,
+      };
+      let wasChanged = false;
+      let isCanceled = false;
       let currentData: PacketData = {
-        ...packetData
-      }
+        ...packetData,
+      };
       Object.defineProperties(packetData, {
         data: {
           get: () => {
-            wasChanged = true
-            return data
-          }
+            wasChanged = true;
+            return data;
+          },
         },
         isCanceled: {
           get: () => {
-            return isCanceled
-          }
-        }
-      })
+            return isCanceled;
+          },
+        },
+      });
 
       for (const middleware of pclient.toServerMiddlewares) {
-        let data: PacketMiddlewareReturnValue
+        let data: PacketMiddlewareReturnValue;
         const funcReturn = middleware(currentData);
         if (funcReturn instanceof Promise) {
           data = await funcReturn;
         } else {
-          data = funcReturn
+          data = funcReturn;
         }
-        isCanceled = data === false
+        isCanceled = data === false;
         if (data !== undefined && data !== false) {
-          currentData = data
+          currentData = data;
         }
       }
-      if (isCanceled) return
+      if (isCanceled) return;
       if (!wasChanged && this.optimizePacketWrite) {
-        this.writeRaw(buffer)
-        return
+        this.writeRaw(buffer);
+        return;
       }
       this.write(meta.name, packetData);
     };
@@ -237,7 +247,7 @@ export class Conn {
   private serverClientDefaultMiddleware(pclient: Client) {
     if (!pclient.toClientMiddlewares) pclient.toClientMiddlewares = [];
     const _internalMcProxyServerClient: PacketMiddleware = () => {
-      if (!this.pclients.includes(pclient)) return false
+      if (!this.pclients.includes(pclient)) return false;
     };
     pclient.toClientMiddlewares.push(_internalMcProxyServerClient);
     if (this.toClientDefaultMiddleware) pclient.toClientMiddlewares.push(...this.toClientDefaultMiddleware);
@@ -265,7 +275,7 @@ export class Conn {
         return false;
       }
       // Keep the bot updated from packets that are send by the controlling client to the server
-      this.stateData.onCToSPacket(meta.name, data)
+      this.stateData.onCToSPacket(meta.name, data);
       if (meta.name === 'keep_alive') return false; // Already handled by the bot client
     };
     pclient.toServerMiddlewares.push(_internalMcProxyClientServer.bind(this));
@@ -273,18 +283,18 @@ export class Conn {
   }
 
   private getBotToServerMiddleware(): PacketMiddleware {
-    const packetWhitelist = ['keep_alive'] // Packets that are send to the server even tho the bot is not controlling
+    const packetWhitelist = ['keep_alive']; // Packets that are send to the server even tho the bot is not controlling
     return ({ meta }) => {
-      if (packetWhitelist.includes(meta.name)) return undefined
-      return this.pclient === undefined ? undefined : false
-    }
+      if (packetWhitelist.includes(meta.name)) return undefined;
+      return this.pclient === undefined ? undefined : false;
+    };
   }
 
   private getServerToBotMiddleware(): PacketMiddleware {
     return () => {
       // Do not cancel on incoming packets to keep the bot updated
-      return undefined
-    }
+      return undefined;
+    };
   }
 
   /**
@@ -355,7 +365,7 @@ export class Conn {
   link(pClient: Client, options?: { toClientMiddleware?: PacketMiddleware[] }) {
     if (this.pclient) this.unlink(); // Does this even matter? Maybe just keep it for future use when unlink does more.
     this.pclient = pClient;
-    this.stateData.bot.physicsEnabled = false
+    this.stateData.bot.physicsEnabled = false;
     this.client.write = this.writeIf.bind(this);
     this.client.writeRaw = () => {};
     this.client.writeChannel = () => {};
@@ -368,7 +378,7 @@ export class Conn {
    */
   unlink() {
     if (this.pclient) {
-      this.stateData.bot.physicsEnabled = this.stateData.flying
+      this.stateData.bot.physicsEnabled = this.stateData.flying;
       this.client.write = this.write.bind(this.client);
       this.client.writeRaw = this.writeRaw.bind(this.client);
       this.client.writeChannel = this.writeChannel.bind(this.client);
@@ -380,17 +390,17 @@ export class Conn {
   async writeIf(name: string, packetData: any) {
     // if (this.internalWhitelist.includes(name)) this.write(name, data);
 
-    const state = this.client.state
+    const state = this.client.state;
     // Build packet canceler function used by middleware
 
-    let data: PacketMiddlewareReturnValue = packetData
-    const funcReturn = this.botToServerDefaultMiddleware({ bound: 'server', meta: { state, name }, writeType: 'packet', data: packetData, pclient: null, isCanceled: false })
+    let data: PacketMiddlewareReturnValue = packetData;
+    const funcReturn = this.botToServerDefaultMiddleware({ bound: 'server', meta: { state, name }, writeType: 'packet', data: packetData, pclient: null, isCanceled: false });
     if (funcReturn instanceof Promise) {
       data = await funcReturn;
     } else {
-      data = funcReturn
+      data = funcReturn;
     }
-    const isCanceled = data === false
+    const isCanceled = data === false;
     if (isCanceled) return;
 
     if (data === undefined) {

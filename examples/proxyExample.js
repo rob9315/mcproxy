@@ -10,7 +10,7 @@ let conn = new mcproxy.Conn({
   version: '1.12.2',
   host: 'localhost',
   port: 25565,
-  skipValidation: true
+  skipValidation: true,
 });
 
 // do stuff with your bot
