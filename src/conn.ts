@@ -142,7 +142,7 @@ export class Conn {
             wasChanged = true;
             return getPacketData();
           },
-        }
+        },
       });
       const { isCanceled, currentData } = await this.processMiddlewareList(pclient.toClientMiddlewares, packetData);
       if (isCanceled) continue;
@@ -368,7 +368,7 @@ export class Conn {
 
   async processMiddlewareList(middlewareList: PacketMiddleware[], currentPacket: PacketData) {
     let returnValue: PacketMiddlewareReturnValue;
-    let currentData: unknown = currentPacket.data
+    let currentData: unknown = currentPacket.data;
     let isCanceled = false;
     for (const middleware of middlewareList) {
       const funcReturn = middleware(currentPacket);
