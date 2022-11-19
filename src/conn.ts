@@ -142,20 +142,15 @@ export class Conn {
             wasChanged = true;
             return getPacketData();
           },
-        },
-        isCanceled: {
-          get: () => {
-            return isCanceled;
-          },
-        },
+        }
       });
-      const { isCanceled, currentData } = await this.processMiddlewareList(pclient.toClientMiddlewares, packetData);
+      const { isCanceled, currentData: currentPacket } = await this.processMiddlewareList(pclient.toClientMiddlewares, packetData);
       if (isCanceled) continue;
       if (!wasChanged && this.optimizePacketWrite) {
         pclient.writeRaw(buffer);
         continue;
       }
-      pclient.write(meta.name, currentData);
+      pclient.write(meta.name, currentPacket.data);
     }
   }
 
@@ -185,13 +180,13 @@ export class Conn {
           },
         },
       });
-      const { isCanceled, currentData } = await this.processMiddlewareList(pclient.toServerMiddlewares, packetData);
+      const { isCanceled, currentData: currentPacket } = await this.processMiddlewareList(pclient.toServerMiddlewares, packetData);
       if (isCanceled) return;
       if (!wasChanged && this.optimizePacketWrite) {
         this.writeRaw(buffer);
         return;
       }
-      this.write(meta.name, currentData);
+      this.write(meta.name, currentPacket.data);
     };
     handle().catch(console.error);
   }
@@ -371,12 +366,11 @@ export class Conn {
     this.pclients.forEach(this.detach.bind(this));
   }
 
-  async processMiddlewareList(middlewareList: PacketMiddleware[], data: PacketData) {
+  async processMiddlewareList(middlewareList: PacketMiddleware[], currentPacket: PacketData) {
     let returnValue: PacketMiddlewareReturnValue;
-    let currentData: PacketData = data;
     let isCanceled = false;
     for (const middleware of middlewareList) {
-      const funcReturn = middleware(currentData);
+      const funcReturn = middleware(currentPacket);
       if (funcReturn instanceof Promise) {
         returnValue = await funcReturn;
       } else {
@@ -391,12 +385,12 @@ export class Conn {
         }
       }
       if (returnValue !== undefined && returnValue !== false && returnValue !== true) {
-        currentData = returnValue;
+        currentPacket = returnValue;
       }
     }
     return {
       isCanceled,
-      currentData,
+      currentData: currentPacket,
     };
   }
 }
