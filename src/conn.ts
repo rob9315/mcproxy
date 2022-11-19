@@ -53,7 +53,7 @@ export interface PacketMiddleware {
   (packetData: PacketData): PacketMiddlewareReturnValue | Promise<PacketMiddlewareReturnValue>;
 }
 
-type PacketMiddlewareReturnValue = PacketData | undefined | false | true | void;
+type PacketMiddlewareReturnValue = object | undefined | false | true | void;
 
 export class Conn {
   options: ConnOptions;
@@ -142,15 +142,15 @@ export class Conn {
             wasChanged = true;
             return getPacketData();
           },
-        }
+        },
       });
-      const { isCanceled, currentData: currentPacket } = await this.processMiddlewareList(pclient.toClientMiddlewares, packetData);
+      const { isCanceled, currentData } = await this.processMiddlewareList(pclient.toClientMiddlewares, packetData);
       if (isCanceled) continue;
       if (!wasChanged && this.optimizePacketWrite) {
         pclient.writeRaw(buffer);
         continue;
       }
-      pclient.write(meta.name, currentPacket.data);
+      pclient.write(meta.name, currentData);
     }
   }
 
@@ -180,13 +180,13 @@ export class Conn {
           },
         },
       });
-      const { isCanceled, currentData: currentPacket } = await this.processMiddlewareList(pclient.toServerMiddlewares, packetData);
+      const { isCanceled, currentData } = await this.processMiddlewareList(pclient.toServerMiddlewares, packetData);
       if (isCanceled) return;
       if (!wasChanged && this.optimizePacketWrite) {
         this.writeRaw(buffer);
         return;
       }
-      this.write(meta.name, currentPacket.data);
+      this.write(meta.name, currentData);
     };
     handle().catch(console.error);
   }
@@ -368,6 +368,7 @@ export class Conn {
 
   async processMiddlewareList(middlewareList: PacketMiddleware[], currentPacket: PacketData) {
     let returnValue: PacketMiddlewareReturnValue;
+    let currentData: unknown = currentPacket.data;
     let isCanceled = false;
     for (const middleware of middlewareList) {
       const funcReturn = middleware(currentPacket);
@@ -379,12 +380,12 @@ export class Conn {
       // Cancel the packet if the return value is false. If the packet is already canceled it can be un canceled with true
       isCanceled = isCanceled ? returnValue !== true : returnValue === false;
       if (returnValue !== undefined && returnValue !== false && returnValue !== true) {
-        currentPacket = returnValue;
+        currentData = returnValue;
       }
     }
     return {
       isCanceled,
-      currentData: currentPacket,
+      currentData,
     };
   }
 }
