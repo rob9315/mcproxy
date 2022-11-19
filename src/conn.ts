@@ -135,7 +135,7 @@ export class Conn {
         isCanceled: false,
       };
       let wasChanged = false;
-      let isCanceled = false;
+      // let isCanceled = false;
       Object.defineProperties(packetData, {
         data: {
           get: () => {
@@ -149,27 +149,7 @@ export class Conn {
           },
         },
       });
-      let currentData: PacketData = packetData;
-
-      for (const middleware of pclient.toClientMiddlewares) {
-        let data: PacketMiddlewareReturnValue;
-        const funcReturn = middleware(currentData);
-        if (funcReturn instanceof Promise) {
-          data = await funcReturn;
-        } else {
-          data = funcReturn;
-        }
-        if (!isCanceled) { // Wait for the first occurrence 
-          isCanceled = data === false;
-        } else {
-          if (data === true) {
-            isCanceled = false; // Allow following middlewares to un cancel packet that have been canceled already
-          }
-        }
-        if (data !== undefined && data !== false && data !== true) {
-          currentData = data;
-        }
-      }
+      const { isCanceled, currentData } = await this.processMiddlewareList(pclient.toClientMiddlewares, packetData);
       if (isCanceled) continue;
       if (!wasChanged && this.optimizePacketWrite) {
         pclient.writeRaw(buffer);
@@ -197,10 +177,6 @@ export class Conn {
         isCanceled: false,
       };
       let wasChanged = false;
-      let isCanceled = false;
-      let currentData: PacketData = {
-        ...packetData,
-      };
       Object.defineProperties(packetData, {
         data: {
           get: () => {
@@ -208,38 +184,14 @@ export class Conn {
             return data;
           },
         },
-        isCanceled: {
-          get: () => {
-            return isCanceled;
-          },
-        },
       });
-
-      for (const middleware of pclient.toServerMiddlewares) {
-        let data: PacketMiddlewareReturnValue;
-        const funcReturn = middleware(currentData);
-        if (funcReturn instanceof Promise) {
-          data = await funcReturn;
-        } else {
-          data = funcReturn;
-        }
-        if (!isCanceled) { // Wait for the first occurrence 
-          isCanceled = data === false;
-        } else {
-          if (data === true) {
-            isCanceled = false; // Allow following middlewares to un cancel packet that have been canceled already
-          }
-        }
-        if (data !== undefined && data !== false && data !== true) {
-          currentData = data;
-        }
-      }
+      const { isCanceled, currentData } = await this.processMiddlewareList(pclient.toServerMiddlewares, packetData);
       if (isCanceled) return;
       if (!wasChanged && this.optimizePacketWrite) {
         this.writeRaw(buffer);
         return;
       }
-      this.write(meta.name, packetData);
+      this.write(meta.name, currentData);
     };
     handle().catch(console.error);
   }
@@ -417,5 +369,34 @@ export class Conn {
   disconnect() {
     this.stateData.bot._client.end('conn: disconnect called');
     this.pclients.forEach(this.detach.bind(this));
+  }
+
+  async processMiddlewareList(middlewareList: PacketMiddleware[], data: PacketData) {
+    let returnValue: PacketMiddlewareReturnValue;
+    let currentData: PacketData = data;
+    let isCanceled = false;
+    for (const middleware of middlewareList) {
+      const funcReturn = middleware(currentData);
+      if (funcReturn instanceof Promise) {
+        returnValue = await funcReturn;
+      } else {
+        returnValue = funcReturn;
+      }
+      if (!isCanceled) {
+        // Wait for the first occurrence
+        isCanceled = returnValue === false;
+      } else {
+        if (returnValue === true) {
+          isCanceled = false; // Allow following middlewares to un cancel packet that have been canceled already
+        }
+      }
+      if (returnValue !== undefined && returnValue !== false && returnValue !== true) {
+        currentData = returnValue;
+      }
+    }
+    return {
+      isCanceled,
+      currentData,
+    };
   }
 }
