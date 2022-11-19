@@ -27,14 +27,6 @@ export class ConnOptions {
   toServerMiddleware?: PacketMiddleware[] = [];
 }
 
-export interface PacketCanceler {
-  /** Has property .isCanceled: boolean indicating if the packet has been canceled by another middleware.
-   * Use `cancel(false)` to un-cancel the packet again.
-   */
-  (unCancel?: boolean): void;
-  isCanceled: boolean;
-}
-
 export interface packetUpdater {
   (update?: boolean): void;
   isUpdated: boolean;
@@ -61,7 +53,7 @@ export interface PacketMiddleware {
   (packetData: PacketData): PacketMiddlewareReturnValue | Promise<PacketMiddlewareReturnValue>;
 }
 
-type PacketMiddlewareReturnValue = PacketData | undefined | false;
+type PacketMiddlewareReturnValue = PacketData | undefined | false | true | void;
 
 export class Conn {
   options: ConnOptions;
@@ -143,41 +135,22 @@ export class Conn {
         isCanceled: false,
       };
       let wasChanged = false;
-      let isCanceled = false;
+      // let isCanceled = false;
       Object.defineProperties(packetData, {
         data: {
           get: () => {
             wasChanged = true;
             return getPacketData();
           },
-        },
-        isCanceled: {
-          get: () => {
-            return isCanceled;
-          },
-        },
+        }
       });
-      let currentData: PacketData = packetData;
-
-      for (const middleware of pclient.toClientMiddlewares) {
-        let data: PacketMiddlewareReturnValue;
-        const funcReturn = middleware(currentData);
-        if (funcReturn instanceof Promise) {
-          data = await funcReturn;
-        } else {
-          data = funcReturn;
-        }
-        isCanceled = data === false;
-        if (data !== undefined && data !== false) {
-          currentData = data;
-        }
-      }
+      const { isCanceled, currentData: currentPacket } = await this.processMiddlewareList(pclient.toClientMiddlewares, packetData);
       if (isCanceled) continue;
       if (!wasChanged && this.optimizePacketWrite) {
         pclient.writeRaw(buffer);
         continue;
       }
-      pclient.write(meta.name, currentData);
+      pclient.write(meta.name, currentPacket.data);
     }
   }
 
@@ -199,10 +172,6 @@ export class Conn {
         isCanceled: false,
       };
       let wasChanged = false;
-      let isCanceled = false;
-      let currentData: PacketData = {
-        ...packetData,
-      };
       Object.defineProperties(packetData, {
         data: {
           get: () => {
@@ -210,32 +179,14 @@ export class Conn {
             return data;
           },
         },
-        isCanceled: {
-          get: () => {
-            return isCanceled;
-          },
-        },
       });
-
-      for (const middleware of pclient.toServerMiddlewares) {
-        let data: PacketMiddlewareReturnValue;
-        const funcReturn = middleware(currentData);
-        if (funcReturn instanceof Promise) {
-          data = await funcReturn;
-        } else {
-          data = funcReturn;
-        }
-        isCanceled = data === false;
-        if (data !== undefined && data !== false) {
-          currentData = data;
-        }
-      }
+      const { isCanceled, currentData: currentPacket } = await this.processMiddlewareList(pclient.toServerMiddlewares, packetData);
       if (isCanceled) return;
       if (!wasChanged && this.optimizePacketWrite) {
         this.writeRaw(buffer);
         return;
       }
-      this.write(meta.name, packetData);
+      this.write(meta.name, currentPacket.data);
     };
     handle().catch(console.error);
   }
@@ -413,5 +364,27 @@ export class Conn {
   disconnect() {
     this.stateData.bot._client.end('conn: disconnect called');
     this.pclients.forEach(this.detach.bind(this));
+  }
+
+  async processMiddlewareList(middlewareList: PacketMiddleware[], currentPacket: PacketData) {
+    let returnValue: PacketMiddlewareReturnValue;
+    let isCanceled = false;
+    for (const middleware of middlewareList) {
+      const funcReturn = middleware(currentPacket);
+      if (funcReturn instanceof Promise) {
+        returnValue = await funcReturn;
+      } else {
+        returnValue = funcReturn;
+      }
+      // Cancel the packet if the return value is false. If the packet is already canceled it can be un canceled with true
+      isCanceled = isCanceled ? returnValue !== true : returnValue === false;
+      if (returnValue !== undefined && returnValue !== false && returnValue !== true) {
+        currentPacket = returnValue;
+      }
+    }
+    return {
+      isCanceled,
+      currentData: currentPacket,
+    };
   }
 }

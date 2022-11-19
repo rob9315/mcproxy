@@ -60,6 +60,7 @@ A function to interact with send packets between a connected client and the serv
 
 - Changing packets: Return the new packet data
 - Canceling the packet: Return `false`
+- Un-Cancel a packet that was canceled by a previous packet: Return `true`
 - Do nothing: Return `undefined`
 
 The returned value can also be wrapped in a promise. The middleware will await the promise result before continuing to process the packet.
