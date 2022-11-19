@@ -27,14 +27,6 @@ export class ConnOptions {
   toServerMiddleware?: PacketMiddleware[] = [];
 }
 
-export interface PacketCanceler {
-  /** Has property .isCanceled: boolean indicating if the packet has been canceled by another middleware.
-   * Use `cancel(false)` to un-cancel the packet again.
-   */
-  (unCancel?: boolean): void;
-  isCanceled: boolean;
-}
-
 export interface packetUpdater {
   (update?: boolean): void;
   isUpdated: boolean;
@@ -61,7 +53,7 @@ export interface PacketMiddleware {
   (packetData: PacketData): PacketMiddlewareReturnValue | Promise<PacketMiddlewareReturnValue>;
 }
 
-type PacketMiddlewareReturnValue = PacketData | undefined | false;
+type PacketMiddlewareReturnValue = PacketData | undefined | false | true;
 
 export class Conn {
   options: ConnOptions;
@@ -167,8 +159,14 @@ export class Conn {
         } else {
           data = funcReturn;
         }
-        isCanceled = data === false;
-        if (data !== undefined && data !== false) {
+        if (!isCanceled) { // Wait for the first occurrence 
+          isCanceled = data === false;
+        } else {
+          if (data === true) {
+            isCanceled = false; // Allow following middlewares to un cancel packet that have been canceled already
+          }
+        }
+        if (data !== undefined && data !== false && data !== true) {
           currentData = data;
         }
       }
@@ -225,8 +223,14 @@ export class Conn {
         } else {
           data = funcReturn;
         }
-        isCanceled = data === false;
-        if (data !== undefined && data !== false) {
+        if (!isCanceled) { // Wait for the first occurrence 
+          isCanceled = data === false;
+        } else {
+          if (data === true) {
+            isCanceled = false; // Allow following middlewares to un cancel packet that have been canceled already
+          }
+        }
+        if (data !== undefined && data !== false && data !== true) {
           currentData = data;
         }
       }
