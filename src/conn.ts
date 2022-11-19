@@ -376,14 +376,8 @@ export class Conn {
       } else {
         returnValue = funcReturn;
       }
-      if (!isCanceled) {
-        // Wait for the first occurrence
-        isCanceled = returnValue === false;
-      } else {
-        if (returnValue === true) {
-          isCanceled = false; // Allow following middlewares to un cancel packet that have been canceled already
-        }
-      }
+      // Cancel the packet if the return value is false. If the packet is already canceled it can be un canceled with true
+      isCanceled = isCanceled ? returnValue !== true : returnValue === false;
       if (returnValue !== undefined && returnValue !== false && returnValue !== true) {
         currentPacket = returnValue;
       }
