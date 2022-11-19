@@ -53,7 +53,7 @@ export interface PacketMiddleware {
   (packetData: PacketData): PacketMiddlewareReturnValue | Promise<PacketMiddlewareReturnValue>;
 }
 
-type PacketMiddlewareReturnValue = PacketData | undefined | false | true;
+type PacketMiddlewareReturnValue = PacketData | undefined | false | true | void;
 
 export class Conn {
   options: ConnOptions;
