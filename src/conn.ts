@@ -146,6 +146,11 @@ export class Conn {
       });
       const { isCanceled, currentData } = await this.processMiddlewareList(pclient.toClientMiddlewares, packetData);
       if (isCanceled) continue;
+      if (meta.name === 'custom_payload') {
+        // Workaround for broken custom_payload packets
+        this.writeRaw(buffer);
+        return;
+      }
       if (!wasChanged && this.optimizePacketWrite) {
         pclient.writeRaw(buffer);
         continue;
@@ -182,6 +187,11 @@ export class Conn {
       });
       const { isCanceled, currentData } = await this.processMiddlewareList(pclient.toServerMiddlewares, packetData);
       if (isCanceled) return;
+      if (meta.name === 'custom_payload') {
+        // Workaround for broken custom_payload packets
+        this.writeRaw(buffer);
+        return;
+      }
       if (!wasChanged && this.optimizePacketWrite) {
         this.writeRaw(buffer);
         return;
